@@ -1,0 +1,221 @@
+package com.example.asknitt
+
+import android.R.attr.entries
+import android.R.attr.name
+import android.content.Context
+import android.graphics.Paint
+import android.net.http.SslCertificate.restoreState
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navigation
+import androidx.navigation.toRoute
+import com.example.asknitt.ui.theme.AskNITTTheme
+import java.util.Map.entry
+import kotlin.math.log
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        WindowCompat.setDecorFitsSystemWindows(window,false)
+        val windowInsetsController = WindowInsetsControllerCompat(window, window.decorView)
+        windowInsetsController.isAppearanceLightStatusBars = false
+        setContent {
+            AskNITTTheme {
+                Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
+                    NavigationScreen(modifier=Modifier.padding(padding))
+                }
+            }
+        }
+
+    }
+}
+@Composable
+fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
+    //TODO, change startdestination to login and from there to home if required and put auto login modification
+    GetAutoLogin(mainViewModel = mainViewModel, context = LocalContext.current)
+    Scaffold(
+        containerColor = Color.Black,
+        bottomBar = {
+                CustomBottomNavigationBar(
+                    mainViewModel = mainViewModel,
+                    navController = navController
+                )
+            }
+    )
+    {
+        NavHost(
+            navController = navController,
+            startDestination = if (mainViewModel.should_auto_login) MainScreenRoutes.MAIN.name else AuthScreenRoutes.AUTH.name,
+            modifier = Modifier.fillMaxSize().padding(bottom = it.calculateBottomPadding())
+        ) {//.then(modifier)
+            navigation(
+                startDestination = AuthScreenRoutes.LOGIN.name,
+                route = AuthScreenRoutes.AUTH.name
+            ) {
+                composable(route = AuthScreenRoutes.LOGIN.name) {
+                    LoginScreen(
+                        loginType = LoginType.LOGIN,
+                        navController = navController,
+                        mainViewModel = mainViewModel
+                    )
+                }
+                composable(route = AuthScreenRoutes.SIGN_UP.name) {
+                    LoginScreen(
+                        loginType = LoginType.SIGN_UP,
+                        navController = navController,
+                        mainViewModel = mainViewModel
+                    )
+                }
+            }
+            navigation(
+                startDestination = MainScreenRoutes.HOME.name,
+                route = MainScreenRoutes.MAIN.name
+            ) {
+                composable(MainScreenRoutes.HOME.name) {
+                    HomeScreen(mainViewModel = mainViewModel)
+                }
+                composable(MainScreenRoutes.SETTINGS.name) {
+                    SettingsScreen(mainViewModel = mainViewModel)
+                }
+                navigation(
+                    startDestination = MainScreenRoutes.MY_DOUBTS_LIST.name,
+                    route = MainScreenRoutes.MY_DOUBTS.name
+                ) {
+                    composable(MainScreenRoutes.MY_DOUBTS_LIST.name) {
+                        MyDoubtScreenIntermediate(mainViewModel = mainViewModel, navController = navController)
+                    }
+                    composable(MainScreenRoutes.ADD_DOUBT.name) {
+                        AddDoubtScreenIntermediate(
+                            mainViewModel = mainViewModel,
+                            navController = navController
+                        )
+                    }
+                    composable<MyDoubt> {
+                        val myDoubt=it.toRoute<MyDoubt>()
+                        ViewMyDoubtInDetailIntermediate(myDoubt=myDoubt,navController=navController,mainViewModel=mainViewModel)
+                    }
+                }
+            }
+        }
+    }
+}
+fun GetAutoLogin(mainViewModel: MainViewModel,context: Context){
+    val prefs=context.getSharedPreferences(shared_prefs_filename, Context.MODE_PRIVATE)
+    mainViewModel.should_auto_login=prefs.getBoolean("auto_login",false)
+    mainViewModel.SetUsername(prefs.getString("username","username")?:"username")
+    mainViewModel.SetPassword(prefs.getString("password","password")?:"password")
+}
+@Composable
+fun CustomBottomNavigationBar(mainViewModel: MainViewModel,navController: NavHostController){
+    val entries =GetBottomBarEntries()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.hierarchy
+
+    if(currentRoute?.any{it.route== MainScreenRoutes.MAIN.name }==true) {
+        NavigationBar(
+            containerColor = colorResource(R.color.black),
+            tonalElevation = 10.dp,
+            modifier = Modifier.height(100.dp)
+        ) {
+            entries.forEachIndexed { idx, entry ->
+                val isselected=currentRoute.any { it.route == entry.route } == true
+                NavigationBarItem(
+                    selected = isselected,
+                    onClick = {//TODO bug input some text in post doubt screen and go to settings and come back-> all ok no problem, it is restored, but if i go to settings and click settings again, and come back to mydoubt, the text is not there,
+                            navController.navigate(entry.route) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                            }
+                    },
+                    icon = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = entry.icon,
+                                contentDescription = null,
+                                tint = colorResource(if (isselected) R.color.electric_green else R.color.white),
+                            )
+                            AnimatedVisibility(visible = isselected) {
+                                Text(
+                                    text = entry.label.uppercase(),
+                                    color = colorResource(R.color.electric_green),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+                )
+            }
+        }
+    }
+}
+fun GetBottomBarEntries():List<AllScreensNamesItem>{
+    return listOf(
+        AllScreensNamesItem(
+            route = MainScreenRoutes.HOME.name,
+            label = "Home",
+            icon = Icons.Default.Home
+        ),
+        AllScreensNamesItem(
+            route = MainScreenRoutes.MY_DOUBTS.name,
+            label = "My Doubts",
+            icon = Icons.AutoMirrored.Filled.Assignment
+        ),
+        AllScreensNamesItem(
+            route = MainScreenRoutes.SETTINGS.name,
+            label = "Settings",
+            icon = Icons.Default.Settings
+        )
+    )
+}
