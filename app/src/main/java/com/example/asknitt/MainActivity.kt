@@ -78,7 +78,6 @@ class MainActivity : ComponentActivity() {
 }
 @Composable
 fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
-    //TODO, change startdestination to login and from there to home if required and put auto login modification
     GetAutoLogin(mainViewModel = mainViewModel, context = LocalContext.current)
     Scaffold(
         containerColor = Color.Black,
@@ -119,7 +118,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                 route = MainScreenRoutes.MAIN.name
             ) {
                 composable(MainScreenRoutes.HOME.name) {
-                    HomeScreen(mainViewModel = mainViewModel)
+                    HomeScreenIntermediate(mainViewModel = mainViewModel,navController=navController)
                 }
                 composable(MainScreenRoutes.SETTINGS.name) {
                     SettingsScreen(mainViewModel = mainViewModel)
@@ -129,7 +128,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                     route = MainScreenRoutes.MY_DOUBTS.name
                 ) {
                     composable(MainScreenRoutes.MY_DOUBTS_LIST.name) {
-                        MyDoubtScreenIntermediate(mainViewModel = mainViewModel, navController = navController)
+                        DoubtScreenIntermediate(mainViewModel = mainViewModel, navController = navController)
                     }
                     composable(MainScreenRoutes.ADD_DOUBT.name) {
                         AddDoubtScreenIntermediate(
@@ -137,12 +136,19 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                             navController = navController
                         )
                     }
-                    composable<MyDoubt> {
-                        val myDoubt=it.toRoute<MyDoubt>()
-                        ViewMyDoubtInDetailIntermediate(myDoubt=myDoubt,navController=navController,mainViewModel=mainViewModel)
+                    composable<Doubt> {
+                        val doubt=it.toRoute<Doubt>()
+                        ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
                     }
                 }
             }
+            /*
+            TODO check this
+            composable<Doubt> {
+                val doubt=it.toRoute<Doubt>()
+                ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
+            }
+             */
         }
     }
 }
@@ -168,7 +174,7 @@ fun CustomBottomNavigationBar(mainViewModel: MainViewModel,navController: NavHos
                 val isselected=currentRoute.any { it.route == entry.route } == true
                 NavigationBarItem(
                     selected = isselected,
-                    onClick = {//TODO bug input some text in post doubt screen and go to settings and come back-> all ok no problem, it is restored, but if i go to settings and click settings again, and come back to mydoubt, the text is not there,
+                    onClick = {//TODO bug input some text in post doubt screen and go to settings and come back-> all ok no problem, it is restored, but if i go to settings and click settings again, and come back to my-doubt, the text is not there,
                             navController.navigate(entry.route) {
                                 launchSingleTop = true
                                 restoreState = true

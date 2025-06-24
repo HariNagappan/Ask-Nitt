@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,onValueChanged:(String)->Unit,onClose:()->Unit){//TODO change mydoubt to doubt
+fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,onValueChanged:(String)->Unit,onClose:()->Unit){
     var should_show_loading_screen by remember { mutableStateOf(false) }
 
     Box{

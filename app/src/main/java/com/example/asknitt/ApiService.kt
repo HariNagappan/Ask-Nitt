@@ -14,7 +14,7 @@ interface ApiService {
     fun RegisterUser(@Body user: User): Call<CheckSuccess>
 
     @GET("user_doubts")
-    fun GetMyDoubts(@Query("username") username: String):Call<List<MyDoubt>>
+    fun GetDoubts(@Query("username") username: String):Call<List<Doubt>>
 
     @POST("post_doubt")
     fun PostDoubt(@Body postDoubtItem: PostDoubtItem): Call<CheckSuccess>
@@ -29,6 +29,11 @@ interface ApiService {
     fun VoteAnswer(@Body vote: Vote):Call<CheckSuccess>
 
     @POST("post_answer")
-    fun PostAnswer(@Body postAnswerToQuestion: PostAnswerToQuestionItem): Call<CheckSuccess>
+    fun PostAnswer(@Body postAnswerToQuestion: PostAnswerToDoubtItem): Call<CheckSuccess>
 
+    @GET("recent_doubts")
+    fun GetRecentQuestions():Call<List<Doubt>>
+
+    @GET("user_info")
+    fun GetUserInfo(@Query("username") username: String): Call<UserInfo>
 }

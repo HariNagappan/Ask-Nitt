@@ -3,6 +3,12 @@ package com.example.asknitt
 import android.R.attr.x
 import android.app.ProgressDialog.show
 import android.util.Log
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,10 +43,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +78,27 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
     var show_check_internet_dialog by  remember { mutableStateOf(false) }
     var isloginselectable by remember { mutableStateOf(true) }
     var show_progress_indicator by remember { mutableStateOf(false) }
+    val infinite_transition =rememberInfiniteTransition()
+    val animatedOffset by infinite_transition.animateFloat(
+        initialValue = -2f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+    val totalWidth = 800f  // total virtual gradient width
+    val shift = animatedOffset * totalWidth
+    val heading_gradient= Brush.linearGradient(
+        colors = listOf(
+            colorResource(R.color.electric_pink),
+            colorResource(R.color.electric_green),
+            colorResource(R.color.electric_red),
+            ),
+        start = Offset(shift, 0f),
+        end = Offset(shift + 1500f, 0f) // wave width
+    )
+
     Box(
         modifier=Modifier
             .fillMaxSize()
@@ -82,7 +112,6 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                 .padding(dimensionResource(R.dimen.med_padding))
         ) {
             Spacer(modifier=Modifier.height(30.dp))
-            //TODO put color wave in this
             Text(
                 text="ASK NITT",
                 fontSize =40.sp,
@@ -90,6 +119,7 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                 fontFamily = FontFamily(Font(R.font.headings)),
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
+                style= TextStyle(brush = heading_gradient),
                 modifier=Modifier
                     .padding(dimensionResource(R.dimen.med_padding))
             )

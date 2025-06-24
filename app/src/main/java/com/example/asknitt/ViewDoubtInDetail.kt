@@ -1,6 +1,5 @@
 package com.example.asknitt
 
-import android.R.attr.top
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -14,11 +13,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,16 +48,13 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import java.math.RoundingMode.UP
 
 @Composable
-fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewModel: MainViewModel){
+fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: MainViewModel){
     //TODO add edit doubt later
     var should_show_post_answer by remember{mutableStateOf(false)}
     var scrollstate = rememberScrollState()
@@ -96,7 +90,7 @@ fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewM
                 .verticalScroll(scrollstate)
         ) {
             Text(
-                text=myDoubt.title,
+                text=doubt.title,
                 lineHeight =50.sp,
                 color=colorResource(R.color.electric_gold),
                 fontSize = 24.sp,
@@ -115,10 +109,10 @@ fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewM
                         .fillMaxWidth()
                 )
                 Text(
-                    text = myDoubt.question,
-                    lineHeight = 28.sp,
+                    text = doubt.question,
+                    lineHeight = 36.sp,
                     color = colorResource(R.color.white),
-                    fontSize = 12.sp,
+                    fontSize = 16.sp,
                     modifier = Modifier
                         .fillMaxWidth()
                 )
@@ -132,10 +126,20 @@ fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewM
                     modifier = Modifier
                         .fillMaxWidth()
                 )
-                CustomTagsPlainShower(tags = myDoubt.tags)
+                CustomTagsPlainShower(tags = doubt.tags)
+            }
+            if(doubt.posted_username!=mainViewModel.username) {
+                Text(
+                    text = "Asked by ${doubt.posted_username}",
+                    fontSize = 16.sp,
+                    color = colorResource(R.color.electric_pink),
+                    //fontFamily = FontFamily(Font(R.font.stripes)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
             }
             Text(
-                text = "Posted On: (UTC) ${myDoubt.timestamp}",
+                text = "Posted On: (UTC) ${doubt.question_timestamp}",
                 fontSize = 16.sp,
                 color=colorResource(R.color.electric_green),
                 //fontFamily = FontFamily(Font(R.font.stripes)),
@@ -149,8 +153,9 @@ fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewM
                 fontFamily = FontFamily(Font(R.font.foldable)),
                 fontSize = 32.sp
                 )
-            Spacer(modifier=Modifier.height(32.dp))
+            Spacer(modifier=Modifier.height(16.dp))
             if(mainViewModel.cur_question_answers.isEmpty()){
+                Spacer(modifier=Modifier.height(16.dp))
                 Text(
                     text = "No Answers Yet",
                     color = colorResource(R.color.white),
@@ -161,6 +166,15 @@ fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewM
                 )
             }
             else{
+                Text(
+                    text = "${mainViewModel.cur_question_answers.size} Answers",
+                    color = colorResource(R.color.electric_pink),
+                    //fontFamily = FontFamily(Font(R.font.foldable)),
+                    fontSize = 24.sp,
+                    textAlign = TextAlign.Left,
+                    modifier=Modifier.fillMaxWidth()
+                )
+                //Spacer(modifier=Modifier.height(16.dp))
                 for(answer in mainViewModel.cur_question_answers){
                     AnswerCard(
                         answer=answer,
@@ -189,14 +203,18 @@ fun ViewMyDoubtInDetail(myDoubt: MyDoubt, navController: NavController,mainViewM
             AnimatedVisibility(should_show_post_answer) {
                 Log.d("general","showing add answer")
                 AddAnswer(
-                    question_id = myDoubt.question_id,
+                    question_id = doubt.question_id,
                     mainViewModel=mainViewModel,
                     answer_text = answer_text,
                     onClose = {
                         should_show_post_answer=false
+                        navController.navigateUp()
+                        navController.navigate(doubt)
                     },
                     onValueChanged = {new_text->
-                        answer_text=new_text
+                        if(new_text.length<=MAX_ANSWER_LENGTH) {
+                            answer_text = new_text
+                        }
                     }
                 )
             }
@@ -225,7 +243,7 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel){
             Text(
                 text="Answered by: ${answer.answered_username}",
                 color=colorResource(R.color.electric_blue),
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 modifier=Modifier.align(Alignment.End)
             )
             Text(
@@ -245,7 +263,6 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel){
         }
     }
 }
-//TODO check if this works:
 @Composable
 fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainViewModel,modifier:Modifier=Modifier){
     var is_upvoted by remember { mutableStateOf(false) }
@@ -327,13 +344,13 @@ fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainVi
     }
 }
 @Composable
-fun ViewMyDoubtInDetailIntermediate(myDoubt: MyDoubt,navController: NavController,mainViewModel: MainViewModel){
+fun ViewDoubtInDetailIntermediate(doubt: Doubt,navController: NavController,mainViewModel: MainViewModel){
     var issuccess by remember{ mutableStateOf(false) }
     var msg by remember{ mutableStateOf("") }
     var retry_number by remember{mutableStateOf(0)}
     LaunchedEffect(retry_number) {
         mainViewModel.GetAnswersByQuestionId(
-            question_id = myDoubt.question_id,
+            question_id = doubt.question_id,
             onFinish = {success,new_msg->
 
                 issuccess=success
@@ -374,8 +391,8 @@ fun ViewMyDoubtInDetailIntermediate(myDoubt: MyDoubt,navController: NavControlle
             }
         }
         else{
-            ViewMyDoubtInDetail(
-                myDoubt = myDoubt,
+            ViewDoubtInDetail(
+                doubt = doubt,
                 navController=navController,
                 mainViewModel=mainViewModel
             )

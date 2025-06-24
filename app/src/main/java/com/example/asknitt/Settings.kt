@@ -35,7 +35,6 @@ fun SettingsScreen(mainViewModel: MainViewModel,modifier: Modifier=Modifier){
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black)){
-        //TODO
         Column(modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier=Modifier.fillMaxWidth()) {
                 Text(

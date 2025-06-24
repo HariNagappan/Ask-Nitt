@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.asknitt.MyDoubt
 import retrofit2.Callback
 import retrofit2.Call
 import retrofit2.Response
@@ -20,10 +19,15 @@ class MainViewModel: ViewModel() {
     var password by mutableStateOf("")
         private set
     var should_auto_login =false
-    var user_doubts: MutableList<MyDoubt> =mutableStateListOf()
-    val tags: MutableList<String> =mutableStateListOf()
+    
+    var user_doubts: MutableList<Doubt> =mutableStateListOf()
+    var recent_doubts: MutableList<Doubt> =mutableStateListOf()
+
+    val tags: MutableList<String> =mutableStateListOf() 
     var cur_question_tags: MutableList<String> =mutableStateListOf()
     var cur_question_answers: MutableList<Answer> =mutableStateListOf()
+    var user_questions_asked by mutableStateOf(0)
+    var user_questions_helped by mutableStateOf(0)
     fun SetUsername(new_username: String) {
         username = new_username
     }
@@ -39,7 +43,7 @@ class MainViewModel: ViewModel() {
                 //do something
             }
             override fun onFailure(call: Call<CheckSuccess>, t: Throwable) {
-                Log.d("apierror", "error_msg:${t.message}")
+                Log.d("apifailure", "error_msg:${t.message}")
             }
         })
     }
@@ -52,25 +56,27 @@ class MainViewModel: ViewModel() {
         edit.putString("password",password)
         edit.apply()
     }
-    fun GetUserDoubts(onFinish: (Boolean, String) -> Unit){
-        val cal=api.GetMyDoubts(username)
-        cal.enqueue(object:Callback<List<MyDoubt>>{
-            override fun onResponse(call: Call<List<MyDoubt>?>, response: Response<List<MyDoubt>?>) {
+    fun GetDoubts(username:String, onFinish: (Boolean, String) -> Unit){
+        val cal=api.GetDoubts(username)
+        cal.enqueue(object:Callback<List<Doubt>>{
+            override fun onResponse(call: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
                     if(response.isSuccessful){
                         val lst=response.body()
                         user_doubts.clear()
                         if(lst!=null) {
                             user_doubts.addAll(lst)
                             onFinish(true,"")
+                            Log.d("apisuccess","this is from GetUserDoubts(), Successfully got user doubts,$user_doubts")
+
                         }
                         else{
-                            Log.d("apierror","this is from GetUserDoubts(), message:response.body is empty")
+                            Log.d("apifailure","this is from GetUserDoubts(), message:response.body is empty")
                             onFinish(false,response.message())
                         }
                     }
             }
-            override fun onFailure(call: Call<List<MyDoubt>?>,t: Throwable) {
-                Log.d("apierror","this is from GetUserDoubts(), message:server error")
+            override fun onFailure(call: Call<List<Doubt>?>,t: Throwable) {
+                Log.d("apifailure","this is from GetUserDoubts(), message:server error")
                 onFinish(false,"${t.message}")
             }
         })
@@ -130,7 +136,6 @@ class MainViewModel: ViewModel() {
 
         })
     }
-    //TODO check if this works :
     fun Vote(answer_id:Int,should_do_upvote:Boolean,is_up_voted:Boolean,is_down_voted:Boolean,changeUpVote:(Int)->Unit,changeDownVote:(Int)->Unit){
         var add_to_upvote=0
         var add_to_downvote=0
@@ -171,7 +176,7 @@ class MainViewModel: ViewModel() {
         })
     }
     fun PostAnswer(question_id: Int,answer: String,onFinish: (Boolean, String) -> Unit){
-        val call=api.PostAnswer(PostAnswerToQuestionItem(question_id=question_id,answer=answer, answered_username = username))
+        val call=api.PostAnswer(PostAnswerToDoubtItem(question_id=question_id,answer=answer, answered_username = username))
         call.enqueue(object:Callback<CheckSuccess>{
             override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
                 if(response.isSuccessful){
@@ -206,13 +211,65 @@ class MainViewModel: ViewModel() {
 
                 }
                 else{
-                    Log.d("apierror","this is from GetAnswers(), message:response.body is empty")
+                    Log.d("apifailure","this is from GetAnswers(), message:response.body is empty")
                     onFinish(false,"Error:${response.message()}")
                 }
             }
 
             override fun onFailure(call: Call<List<Answer>?>, t: Throwable) {
-                Log.d("apierror","this is from GetAnswers(), message:${t.message}")
+                Log.d("apifailure","this is from GetAnswers(), message:${t.message}")
+                onFinish(false,"Error:${t.message}")
+            }
+
+        })
+    }
+    fun GetRecentDoubts(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetRecentQuestions()
+        call.enqueue(object : Callback<List<Doubt>>{
+            override fun onResponse(call: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
+                if(response.isSuccessful){
+                    val lst=response.body()
+                    recent_doubts.clear()
+                    if(lst!=null) {
+                        recent_doubts.addAll(lst)
+
+                    }
+                    Log.d("apisuccess","successfully retrieved recent_doubts:.$recent_doubts")
+                    onFinish(true,"")
+                }
+                else{
+                    Log.d("apifailure","this is from GetResponse(), ${response.message()}")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<Doubt>?>, t: Throwable) {
+                Log.d("apifailure","this is from GetResponse(), ${t.message}")
+                onFinish(false,"Error:${t.message}")
+            }
+
+        })
+    }
+    fun GetUserInfo(username: String, onFinish: (Boolean, String) -> Unit){
+        val call=api.GetUserInfo(username)
+        call.enqueue(object:Callback<UserInfo>{
+            override fun onResponse(call: Call<UserInfo?>, response: Response<UserInfo?>) {
+                if(response.isSuccessful){
+                    val info=response.body()
+                    if(info!=null) {
+                        user_questions_asked = info.questions_asked
+                        user_questions_helped=info.people_helped
+                    }
+                    onFinish(true,"")
+                }
+                else{
+                    Log.d("apifailure","this is from GetResponse(), ${response.message()}")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<UserInfo?>, t: Throwable) {
+                Log.d("apifailure","this is from GetUserInfo(), ${t.message}")
                 onFinish(false,"Error:${t.message}")
             }
 

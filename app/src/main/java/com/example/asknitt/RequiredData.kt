@@ -16,8 +16,7 @@ enum class MainScreenRoutes{
 
                         MY_DOUBTS,
                             MY_DOUBTS_LIST,
-                            ADD_DOUBT,
-                            VIEW_DOUBT_IN_DETAIL
+                            ADD_DOUBT
 }
 enum class AuthScreenRoutes{
     AUTH,
@@ -47,15 +46,14 @@ data class CheckUser(val user_exists:Boolean,val error_msg:String)
 data class CheckSuccess(val success: Boolean)
 data class AllScreensNamesItem(val route:String,val label:String,val icon: ImageVector)
 
-@Serializable
-data class MyDoubt(val question_id:Int,val title:String,val question:String,val tags:List<String>,val timestamp:String)
 data class PostDoubtItem(val username: String,val title:String,val question: String,val tags:List<String>)
 data class Tags(val tags:List<String>)
 data class Answer(val answer_id:Int,val answered_username:String,val answer_timestamp: String,val answer: String,val upvotes:Int,val downvotes:Int)
 data class Vote(val add_to_upvote:Int=0,val add_to_downvote:Int=0,val answer_id: Int)
-data class PostAnswerToQuestionItem(val question_id: Int,val answer: String,val answered_username: String)
+data class PostAnswerToDoubtItem(val question_id: Int,val answer: String,val answered_username: String)
 @Serializable
-data class Doubt(val username:String,val question_id:Int,val title:String,val question:String,val tags:List<String>,val timestamp:String)
+data class Doubt(val posted_username:String,val question_id:Int,val title:String,val question:String,val tags:List<String>,val question_timestamp:String)
+data class UserInfo(val username: String,val people_helped:Int,val questions_asked:Int)
 
 val client= OkHttpClient.Builder()
     .connectTimeout(5, TimeUnit.SECONDS)
