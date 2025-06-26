@@ -24,14 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
-fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,onValueChanged:(String)->Unit,onClose:()->Unit){
+fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,navController: NavController,onValueChanged:(String)->Unit,onClose:()->Unit){
     var should_show_loading_screen by remember { mutableStateOf(false) }
+    val context=LocalContext.current
 
     Box{
         Column(
@@ -84,6 +87,7 @@ fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,on
             question_id=question_id,
             answer = answer_text,
             mainViewModel=mainViewModel,
+            navController = navController,
             onSuccess= {
                 onValueChanged("")
                 should_show_loading_screen=false
@@ -93,9 +97,10 @@ fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,on
     }
 }
 @Composable
-fun PostAnswerIntermediate(question_id: Int,answer:String,mainViewModel: MainViewModel,onSuccess:()->Unit){
+fun PostAnswerIntermediate(question_id: Int, answer:String, navController: NavController, mainViewModel: MainViewModel, onSuccess:()->Unit){
     var issuccess by remember { mutableStateOf(false) }
     var error_msg by remember { mutableStateOf("") }
+    val context=LocalContext.current
     LaunchedEffect(Unit) {
         mainViewModel.PostAnswer(
             question_id=question_id,
@@ -105,6 +110,20 @@ fun PostAnswerIntermediate(question_id: Int,answer:String,mainViewModel: MainVie
                 error_msg=msg
             }
         )
+    }
+    if(error_msg== stringResource(R.string.expired_signature)){
+        LaunchedEffect(Unit) {
+            navController.navigate(AuthScreenRoutes.AUTH.name) {
+                popUpTo(MainScreenRoutes.MAIN.name) {
+                    inclusive = true
+                }
+            }
+            Toast.makeText(
+                context,
+                "Session Expired,Please Login Again",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
     Box(modifier=Modifier.fillMaxSize()){
         if(!issuccess && error_msg==""){

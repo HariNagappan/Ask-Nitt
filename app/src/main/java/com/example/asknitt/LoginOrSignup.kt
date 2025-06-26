@@ -3,6 +3,7 @@ package com.example.asknitt
 import android.R.attr.x
 import android.app.ProgressDialog.show
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -37,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +66,7 @@ import okhttp3.internal.userAgent
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.Callback
+import kotlin.contracts.contract
 import kotlin.math.log
 
 
@@ -78,26 +81,7 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
     var show_check_internet_dialog by  remember { mutableStateOf(false) }
     var isloginselectable by remember { mutableStateOf(true) }
     var show_progress_indicator by remember { mutableStateOf(false) }
-    val infinite_transition =rememberInfiniteTransition()
-    val animatedOffset by infinite_transition.animateFloat(
-        initialValue = -2f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(5000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-    val totalWidth = 800f  // total virtual gradient width
-    val shift = animatedOffset * totalWidth
-    val heading_gradient= Brush.linearGradient(
-        colors = listOf(
-            colorResource(R.color.electric_pink),
-            colorResource(R.color.electric_green),
-            colorResource(R.color.electric_red),
-            ),
-        start = Offset(shift, 0f),
-        end = Offset(shift + 1500f, 0f) // wave width
-    )
+    val context=LocalContext.current
 
     Box(
         modifier=Modifier
@@ -109,9 +93,8 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(dimensionResource(R.dimen.med_padding))
+                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
         ) {
-            Spacer(modifier=Modifier.height(30.dp))
             Text(
                 text="ASK NITT",
                 fontSize =40.sp,
@@ -119,7 +102,6 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                 fontFamily = FontFamily(Font(R.font.headings)),
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                style= TextStyle(brush = heading_gradient),
                 modifier=Modifier
                     .padding(dimensionResource(R.dimen.med_padding))
             )
@@ -154,14 +136,6 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                     unfocusedContainerColor = Color.Black,
                     cursorColor = colorResource(R.color.electric_green)
                     ),
-                supportingText = {
-                    if(show_incorrect_username){
-                        Text(
-                            text =if(loginType== LoginType.LOGIN) "Username does not exist" else "Username is already taken!!",
-                            color=colorResource(R.color.electric_red)
-                        )
-                    }
-                }
             )
 
             Column(
@@ -187,14 +161,6 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                         tint = colorResource(R.color.electric_green),
                         modifier=Modifier.clickable{password_visible=!password_visible}
                     ) },
-                    supportingText = {
-                        if(show_incorrect_password){
-                            Text(
-                                text = "Incorrect Password",
-                                color=colorResource(R.color.electric_red)
-                            )
-                        }
-                    },
                     colors= OutlinedTextFieldDefaults.colors(
                         focusedTextColor = colorResource(R.color.electric_green),
                         unfocusedTextColor = colorResource(R.color.electric_green),
@@ -204,20 +170,6 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                         cursorColor = colorResource(R.color.electric_green)
                     ),
                 )
-                /*
-                TODO forgot password
-
-                    Text(
-                        text="Forgot password?",
-                        color=colorResource(R.color.electric_green),
-                        modifier= Modifier
-                            .clickable{
-                                //TODO use email to login
-                            }
-                            .align(Alignment.Start)
-                            .padding(start=48.dp),
-                    )
-                 */
                 if(loginType== LoginType.LOGIN) {
                     TextButton(
                         onClick = {
@@ -237,68 +189,11 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                 Spacer(modifier=Modifier.height(32.dp))
                 Button(
                     onClick = {
+                        mainViewModel.SetUsername(username)
+                        mainViewModel.SetPassword(password)
                         show_progress_indicator=true
                         isloginselectable=false
-                        val call=api.CheckUsernameAndPassword(username,password)
-                        call.enqueue(object : Callback<CheckUser> {
-                            override fun onResponse(call: Call<CheckUser>, response: Response<CheckUser>) {
-                                if (response.isSuccessful) {
-                                    val usercheck = response.body()
-                                    if(usercheck!=null) {
-                                        if (usercheck.user_exists == false) {
-                                            if(loginType== LoginType.LOGIN) {
-                                                show_incorrect_username = true
-                                                show_incorrect_password = false
-                                                isloginselectable=true
-                                            }
-                                            else{
-                                                mainViewModel.SetUsername(new_username = username)
-                                                mainViewModel.SetPassword(new_password = password)
-                                                mainViewModel.RegisterNewUser()
-                                                navController.navigate(MainScreenRoutes.HOME.name){
-                                                    popUpTo(AuthScreenRoutes.AUTH.name){
-                                                        inclusive=true
-                                                    }
-                                                    launchSingleTop=true
-                                                }
-                                            }
-                                        }
-                                        else if (usercheck.error_msg!=""){
-                                            if(loginType== LoginType.LOGIN) {
-                                                show_incorrect_username = false
-                                                show_incorrect_password = true
-                                            }
-                                            else{
-                                                show_incorrect_username=true
-                                                show_incorrect_password=false
-                                            }
-                                            isloginselectable = true
-                                        }
-                                        else{
-                                            mainViewModel.SetUsername(new_username = username)
-                                            mainViewModel.SetPassword(new_password = password)
-                                            navController.navigate(MainScreenRoutes.HOME.name){
-                                                popUpTo(AuthScreenRoutes.AUTH.name){
-                                                    inclusive=true
-                                                }
-                                                launchSingleTop=true
-                                            }
-                                        }
-                                    }
-                                }
-                                else{
-                                    Log.d("apierror","could not get data,${response.message()}")
-                                    isloginselectable=true
-                                }
-                                show_progress_indicator=false
-                            }
-                            override fun onFailure(call: Call<CheckUser>, t: Throwable) {
-                                show_check_internet_dialog=true
-                                Log.d("apierror","error_msg:${t.message}")
-                                isloginselectable=true
-                                show_progress_indicator=false
-                            }
-                        })
+
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.electric_green),
@@ -320,12 +215,57 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
        if(show_check_internet_dialog){
            ErrorDialogDismissOnly(
                title="Error",
-               body = "Unable to process Request, Please check your internet connection and try again later" ,
+               body = "Unable to process Request, Please try again later" ,
                onDismiss = {show_check_internet_dialog=false})
        }
         if(show_progress_indicator){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center))
+            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
+            LoginSignupIntermediate(
+                onLaunch = {
+                    if(loginType== LoginType.LOGIN){
+                        mainViewModel.LoginUser(
+                            context = context,
+                            onFinish = {success,error_msg->
+                                if(success){
+                                    navController.navigateUp()
+                                    navController.navigate(MainScreenRoutes.MAIN.name)
+                                }
+                                else{
+                                    show_progress_indicator=false
+                                    Toast.makeText(context,error_msg,Toast.LENGTH_SHORT).show()
+                                }
+                                isloginselectable=true
+
+                            })
+                    }
+                    else{
+                        mainViewModel.SignUpUser(
+                            context = context,
+                            onFinish = {success,error_msg->
+                                if(success){
+                                    navController.navigate(MainScreenRoutes.MAIN.name){
+                                        popUpTo(AuthScreenRoutes.AUTH.name){
+                                            inclusive=true
+                                        }
+                                    }
+                                }
+                                else{
+                                    show_progress_indicator=false
+                                    Toast.makeText(context,error_msg,Toast.LENGTH_SHORT).show()
+                                }
+                                isloginselectable=true
+
+                            })
+                    }
+                }
+            )
         }
+    }
+}
+@Composable
+fun LoginSignupIntermediate(onLaunch:()->Unit){
+    LaunchedEffect(Unit) {
+        onLaunch()
     }
 }
 @Composable

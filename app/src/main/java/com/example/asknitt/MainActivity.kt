@@ -13,6 +13,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ContextualFlowColumn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -52,9 +54,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import com.example.asknitt.ui.theme.AskNITTTheme
 import java.util.Map.entry
 import kotlin.math.log
@@ -70,15 +75,14 @@ class MainActivity : ComponentActivity() {
             AskNITTTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
                     NavigationScreen(modifier=Modifier.padding(padding))
+                    Get_JWT_Token_From_Preferences(context = LocalContext.current)
                 }
             }
         }
-
     }
 }
 @Composable
 fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
-    GetAutoLogin(mainViewModel = mainViewModel, context = LocalContext.current)
     Scaffold(
         containerColor = Color.Black,
         bottomBar = {
@@ -91,7 +95,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
     {
         NavHost(
             navController = navController,
-            startDestination = if (mainViewModel.should_auto_login) MainScreenRoutes.MAIN.name else AuthScreenRoutes.AUTH.name,
+            startDestination = if(JWT_TOKEN=="") AuthScreenRoutes.AUTH.name else MainScreenRoutes.MAIN.name,
             modifier = Modifier.fillMaxSize().padding(bottom = it.calculateBottomPadding())
         ) {//.then(modifier)
             navigation(
@@ -121,7 +125,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                     HomeScreenIntermediate(mainViewModel = mainViewModel,navController=navController)
                 }
                 composable(MainScreenRoutes.SETTINGS.name) {
-                    SettingsScreen(mainViewModel = mainViewModel)
+                    SettingsScreen(navController=navController, mainViewModel = mainViewModel)
                 }
                 navigation(
                     startDestination = MainScreenRoutes.MY_DOUBTS_LIST.name,
@@ -136,27 +140,27 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                             navController = navController
                         )
                     }
-                    composable<Doubt> {
-                        val doubt=it.toRoute<Doubt>()
-                        ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
+//                    composable<Doubt> {
+//                        val doubt=it.toRoute<Doubt>()
+//                        ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
+//                    }
+                }
+                navigation(
+                    startDestination = MainScreenRoutes.SEARCH.name,
+                    route = MainScreenRoutes.SEARCH_STUFF.name
+                ) {
+                    composable(MainScreenRoutes.SEARCH.name) {
+                        SearchScreen(navController=navController,mainViewModel=mainViewModel)
                     }
                 }
             }
-            /*
-            TODO check this
+
             composable<Doubt> {
                 val doubt=it.toRoute<Doubt>()
                 ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
             }
-             */
         }
     }
-}
-fun GetAutoLogin(mainViewModel: MainViewModel,context: Context){
-    val prefs=context.getSharedPreferences(shared_prefs_filename, Context.MODE_PRIVATE)
-    mainViewModel.should_auto_login=prefs.getBoolean("auto_login",false)
-    mainViewModel.SetUsername(prefs.getString("username","username")?:"username")
-    mainViewModel.SetPassword(prefs.getString("password","password")?:"password")
 }
 @Composable
 fun CustomBottomNavigationBar(mainViewModel: MainViewModel,navController: NavHostController){
@@ -206,6 +210,7 @@ fun CustomBottomNavigationBar(mainViewModel: MainViewModel,navController: NavHos
         }
     }
 }
+
 fun GetBottomBarEntries():List<AllScreensNamesItem>{
     return listOf(
         AllScreensNamesItem(
@@ -219,9 +224,26 @@ fun GetBottomBarEntries():List<AllScreensNamesItem>{
             icon = Icons.AutoMirrored.Filled.Assignment
         ),
         AllScreensNamesItem(
+            route = MainScreenRoutes.SEARCH_STUFF.name,
+            label = "Search",
+            icon = Icons.Default.Search
+        ),
+        AllScreensNamesItem(
             route = MainScreenRoutes.SETTINGS.name,
             label = "Settings",
             icon = Icons.Default.Settings
         )
     )
+}
+
+fun Get_JWT_Token_From_Preferences(context: Context){
+    val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+    val prefs = EncryptedSharedPreferences.create(
+        SHARED_PREFS_FILENAME,
+        masterKeyAlias,
+        context,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+    JWT_TOKEN=prefs.getString("JWTToken","")?:""
 }

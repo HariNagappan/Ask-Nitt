@@ -1,5 +1,6 @@
 package com.example.asknitt
 
+import android.R.attr.data
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.MutableState
@@ -7,7 +8,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import retrofit2.Callback
 import retrofit2.Call
 import retrofit2.Response
@@ -19,9 +23,10 @@ class MainViewModel: ViewModel() {
     var password by mutableStateOf("")
         private set
     var should_auto_login =false
-    
+
     var user_doubts: MutableList<Doubt> =mutableStateListOf()
     var recent_doubts: MutableList<Doubt> =mutableStateListOf()
+    var all_doubts:MutableList<Doubt> =mutableStateListOf()
 
     val tags: MutableList<String> =mutableStateListOf() 
     var cur_question_tags: MutableList<String> =mutableStateListOf()
@@ -36,27 +41,72 @@ class MainViewModel: ViewModel() {
         password = new_password
     }
 
-    fun RegisterNewUser() {
-        val call = api.RegisterUser(User(username = username, password = password))
-        call.enqueue(object : Callback<CheckSuccess> {
-            override fun onResponse(call: Call<CheckSuccess>, response: Response<CheckSuccess>) {
-                //do something
+    fun LoginUser(context: Context, onFinish: (Boolean, String) -> Unit){
+        val call=api.Login(User(username=username,password=password))
+        call.enqueue(object:Callback<Token>{
+            override fun onResponse(call: Call<Token?>, response: Response<Token?>) {
+                if(response.isSuccessful){
+                    val data=response.body()
+                    if(data!=null) {
+                        JWT_TOKEN = data.token
+                        if(JWT_TOKEN!="") {
+                            SaveJWTToken(context = context)
+                            Log.d("apisuccess", "From LoginUser():${data.msg}")
+                            onFinish(true, "")
+                        }
+                        else {
+                            onFinish(false, data.msg)
+                        }
+                    }
+                }
+                else{
+                    Log.d("apifailure", "From LoginUser():${response.message()}")
+                    onFinish(false,response.message())
+                }
             }
-            override fun onFailure(call: Call<CheckSuccess>, t: Throwable) {
-                Log.d("apifailure", "error_msg:${t.message}")
+
+            override fun onFailure(call: Call<Token?>, t: Throwable) {
+                Log.d("apifailure", "From LoginUser():${t.message}")
+                onFinish(false,t.message.toString())
+            }
+
+        })
+    }
+    fun SignUpUser(context: Context, onFinish: (Boolean, String) -> Unit) {
+        val call = api.SignUp(User(username = username, password = password))
+        call.enqueue(object : Callback<Token> {
+            override fun onResponse(call: Call<Token>, response: Response<Token>) {
+                if(response.isSuccessful){
+                    val data=response.body()
+                    if(data!=null) {
+                        if(data.token==""){
+                            onFinish(false, "Username already exists")
+                        }
+                        else {
+                            JWT_TOKEN = data.token
+                            SaveJWTToken(context = context)
+                            Log.d("apisuccess", "From RegisterNewUser():${data.msg}")
+                            onFinish(true, "")
+                        }
+                    }
+                }
+                else{
+                    Log.d("apifailure", "From RegisterNewUser():${response.message()}")
+                    onFinish(false,response.message())
+                }
+            }
+            override fun onFailure(call: Call<Token>, t: Throwable) {
+                Log.d("apifailure", "From RegisterNewUser():${t.message}")
+                onFinish(false,t.message.toString())
             }
         })
     }
-    fun SaveAutoLogin(auto_login:Boolean, context: Context){
-        should_auto_login=auto_login
-        val prefs=context.getSharedPreferences(shared_prefs_filename, Context.MODE_PRIVATE)
-        val edit=prefs.edit()
-        edit.putBoolean("auto_login",should_auto_login)
-        edit.putString("username",username)
-        edit.putString("password",password)
-        edit.apply()
+    fun Logout(context: Context,onFinish: (Boolean, String) -> Unit){
+        DeleteJWTToken(context=context)
+        onFinish(true,"")
     }
-    fun GetDoubts(username:String, onFinish: (Boolean, String) -> Unit){
+
+    fun GetDoubtsByUsername(username:String, onFinish: (Boolean, String) -> Unit){
         val cal=api.GetDoubts(username)
         cal.enqueue(object:Callback<List<Doubt>>{
             override fun onResponse(call: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
@@ -136,7 +186,7 @@ class MainViewModel: ViewModel() {
 
         })
     }
-    fun Vote(answer_id:Int,should_do_upvote:Boolean,is_up_voted:Boolean,is_down_voted:Boolean,changeUpVote:(Int)->Unit,changeDownVote:(Int)->Unit){
+    fun Vote(answer_id:Int,should_do_upvote:Boolean,is_up_voted:Boolean,is_down_voted:Boolean,changeUpVote:(Int)->Unit,changeDownVote:(Int)->Unit,onFinish: (Boolean, String) -> Unit){
         var add_to_upvote=0
         var add_to_downvote=0
         if(is_up_voted){
@@ -163,15 +213,28 @@ class MainViewModel: ViewModel() {
         call.enqueue(object:Callback<CheckSuccess>{
             override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
                 if(response.isSuccessful){
-                    Log.d("apisuccess","From Vote(): Successfully Voted")
+                    val tmp=response.body()
+                    if(tmp!=null) {
+                        if(tmp.error_msg=="" || tmp.error_msg==null) {
+                            Log.d("apisuccess", "From Vote(): Successfully Voted")
+                            onFinish(true,"")
+                        }
+                        else{
+                            onFinish(false,tmp.error_msg)
+                        }
+                    }
+                    else{
+                        onFinish(false,"got null response")
+                    }
                 }
                 else{
+                    onFinish(false,response.message())
                     Log.d("apifailure","From Vote(): ${response.message()}")
                 }
             }
-
             override fun onFailure(call: Call<CheckSuccess?>, t: Throwable) {
                 Log.d("apifailure","From Vote(): ${t.message}")
+                onFinish(false,"${t.message}")
             }
         })
     }
@@ -180,16 +243,25 @@ class MainViewModel: ViewModel() {
         call.enqueue(object:Callback<CheckSuccess>{
             override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
                 if(response.isSuccessful){
-                    Log.d("apisuccess","From PostAnswer(): Successfully Posted Answer")
-                    onFinish(true,"")
+                    val tmp=response.body()
+                    if(tmp!=null) {
+                        if (tmp.error_msg == "" || tmp.error_msg == null) {
+                            Log.d("apisuccess", "From PostAnswer(): Successfully Posted Answer")
+                            onFinish(true, "")
+                        }
+                        else{
+                            onFinish(false,tmp.error_msg)
+                        }
+                    }
+                    else{
+                        onFinish(false,"got null response")
+                    }
                 }
                 else{
                     Log.d("apifailure","From PostAnswer(): ${response.message()}")
                     onFinish(false,response.message())
-
                 }
             }
-
             override fun onFailure(call: Call<CheckSuccess?>, t: Throwable) {
                 Log.d("apifailure","From PostAnswer(): ${t.message}")
                 onFinish(false,"${t.message}")
@@ -250,17 +322,25 @@ class MainViewModel: ViewModel() {
 
         })
     }
-    fun GetUserInfo(username: String, onFinish: (Boolean, String) -> Unit){
-        val call=api.GetUserInfo(username)
+    fun GetUserInfo(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetUserInfo()
         call.enqueue(object:Callback<UserInfo>{
-            override fun onResponse(call: Call<UserInfo?>, response: Response<UserInfo?>) {
+            override fun onResponse(call: Call<UserInfo>, response: Response<UserInfo>) {
                 if(response.isSuccessful){
                     val info=response.body()
                     if(info!=null) {
-                        user_questions_asked = info.questions_asked
-                        user_questions_helped=info.people_helped
+                        if (info.error_msg == "" || info.error_msg==null) {
+                            user_questions_asked = info.questions_asked
+                            user_questions_helped = info.people_helped
+                            username = info.username
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, info.error_msg)
+                        }
                     }
-                    onFinish(true,"")
+                    else{
+                        onFinish(false, "Error, could not fetch info")
+                    }
                 }
                 else{
                     Log.d("apifailure","this is from GetResponse(), ${response.message()}")
@@ -268,11 +348,56 @@ class MainViewModel: ViewModel() {
                 }
             }
 
-            override fun onFailure(call: Call<UserInfo?>, t: Throwable) {
+            override fun onFailure(call: Call<UserInfo>, t: Throwable) {
                 Log.d("apifailure","this is from GetUserInfo(), ${t.message}")
                 onFinish(false,"Error:${t.message}")
             }
 
         })
+    }
+    fun GetAllDoubts(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetAllDoubts()
+        call.enqueue(object:Callback<List<Doubt>>{
+            override fun onResponse(all: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
+                if(response.isSuccessful){
+                    onFinish(true,"")
+                }
+                else{
+                    Log.d("apifailure","this is from GetAllDoubts(), ${response.message()}")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+            override fun onFailure(call: Call<List<Doubt>?>, t: Throwable) {
+                onFinish(false,"Error:${t.message}")
+                Log.d("apifailure","this is from GetAllDoubts(), ${t.message}")
+            }
+        })
+    }
+
+    fun SaveJWTToken(context: Context){
+        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        val prefs = EncryptedSharedPreferences.create(
+            SHARED_PREFS_FILENAME, // filename
+            masterKey,
+            context,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        val edit=prefs.edit()
+        edit.putString("JWTToken",JWT_TOKEN)
+        edit.apply()
+    }
+    fun DeleteJWTToken(context: Context){
+        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        val prefs = EncryptedSharedPreferences.create(
+            SHARED_PREFS_FILENAME, // filename
+            masterKey,
+            context,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        val edit=prefs.edit()
+        edit.putString("JWTToken","")
+        edit.apply()
     }
 }

@@ -1,6 +1,7 @@
 package com.example.asknitt
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.Font
@@ -178,7 +180,8 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 for(answer in mainViewModel.cur_question_answers){
                     AnswerCard(
                         answer=answer,
-                        mainViewModel=mainViewModel
+                        mainViewModel=mainViewModel,
+                        navController=navController
                     )
                 }
             }
@@ -211,6 +214,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                         navController.navigateUp()
                         navController.navigate(doubt)
                     },
+                    navController = navController,
                     onValueChanged = {new_text->
                         if(new_text.length<=MAX_ANSWER_LENGTH) {
                             answer_text = new_text
@@ -222,7 +226,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
     }
 }
 @Composable
-fun AnswerCard(answer: Answer, mainViewModel: MainViewModel){
+fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavController){
     Card(
         colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray)),
         modifier=Modifier
@@ -258,18 +262,19 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel){
                 verticalAlignment = Alignment.CenterVertically,
                 modifier=Modifier
                 .fillMaxWidth()){
-                UpvoteDownVote(answer_id = answer.answer_id, upvotes = answer.upvotes, downvotes = answer.downvotes,mainViewModel=mainViewModel)
+                UpvoteDownVote(answer_id = answer.answer_id, upvotes = answer.upvotes, downvotes = answer.downvotes,mainViewModel=mainViewModel,navController=navController)
             }
         }
     }
 }
 @Composable
-fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainViewModel,modifier:Modifier=Modifier){
+fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
     var is_upvoted by remember { mutableStateOf(false) }
     var is_downvoted by remember { mutableStateOf(false) }
     var total_upvotes by remember { mutableStateOf(upvotes) }
     var total_downvotes by remember { mutableStateOf(downvotes) }
-
+    val context= LocalContext.current
+    var exp_sig by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Button(
             onClick = {
@@ -280,6 +285,19 @@ fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainVi
                     should_do_upvote = true,
                     changeUpVote = {to_be_added->
                         total_upvotes+=to_be_added
+                    },
+                    onFinish = {success,msg->
+                        if(success){
+                            Toast.makeText(context,"Successfully Voted", Toast.LENGTH_SHORT).show()
+                        }
+                        else{
+                            if(msg==context.getString(R.string.expired_signature)){
+                                exp_sig=true
+                            }
+                            else{
+                                Toast.makeText(context,"Error:$msg", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     },
                     changeDownVote = {to_be_added->
                         total_downvotes+=to_be_added
@@ -313,6 +331,19 @@ fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainVi
                     is_up_voted=is_upvoted,
                     is_down_voted=is_downvoted,
                     should_do_upvote = false,
+                    onFinish = {success,msg->
+                        if(success){
+                            Toast.makeText(context,"Successfully Voted", Toast.LENGTH_SHORT).show()
+                        }
+                        else{
+                            if(msg==context.getString(R.string.expired_signature)){
+                                exp_sig=true
+                            }
+                            else{
+                                Toast.makeText(context,"Error:$msg", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
                     changeUpVote = {to_be_added->
                         total_upvotes+=to_be_added
                     },
@@ -342,6 +373,16 @@ fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainVi
             }
         }
     }
+    LaunchedEffect(exp_sig) {
+        if(exp_sig){
+            navController.navigate(AuthScreenRoutes.AUTH.name){
+                popUpTo(MainScreenRoutes.MAIN.name){
+                    inclusive=true
+                }
+            }
+            Toast.makeText(context,"Session Expired,Please Login Again",Toast.LENGTH_LONG).show()
+        }
+    }
 }
 @Composable
 fun ViewDoubtInDetailIntermediate(doubt: Doubt,navController: NavController,mainViewModel: MainViewModel){
@@ -352,11 +393,9 @@ fun ViewDoubtInDetailIntermediate(doubt: Doubt,navController: NavController,main
         mainViewModel.GetAnswersByQuestionId(
             question_id = doubt.question_id,
             onFinish = {success,new_msg->
-
                 issuccess=success
                 msg=new_msg
                 Log.d("apisuccess","executed")
-
             })
     }
     Box(modifier=Modifier.fillMaxSize()){

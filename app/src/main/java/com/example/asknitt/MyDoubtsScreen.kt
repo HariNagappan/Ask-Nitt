@@ -164,7 +164,7 @@ fun DoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavContr
     var issuccess by remember { mutableStateOf(false) }
     var error_msg by remember { mutableStateOf("") }
     LaunchedEffect(retrycount) {
-        mainViewModel.GetDoubts(
+        mainViewModel.GetDoubtsByUsername(
             username = mainViewModel.username,
             onFinish ={success,msg->
                 issuccess=success
@@ -206,52 +206,9 @@ fun DoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavContr
             DoubtsScreen(mainViewModel=mainViewModel,navController=navController)
         }
     }
-
 }
 
-@Composable
-fun CustomOutlineTextField(cur_text:String, containerColor: Color=colorResource(R.color.dark_gray), singleLine:Boolean, enabled:Boolean, onValueChanged:(String)->Unit, modifier:Modifier=Modifier){
-    OutlinedTextField(
-        value = cur_text,
-        onValueChange = { onValueChanged(it) },
-        enabled=enabled,
-        placeholder = {
-            Text(
-                text = "",
-                color = colorResource(R.color.electric_green)
-            )
-        },
-        label = {
-            Text(
-                text = "",
-                color = colorResource(R.color.electric_green),
-            )
-        },
-        singleLine = singleLine,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = colorResource(R.color.electric_green),
-            unfocusedTextColor = colorResource(R.color.electric_green),
-            focusedBorderColor = colorResource(R.color.electric_pink),
-            focusedContainerColor = containerColor,
-            unfocusedContainerColor = containerColor,
-            cursorColor = colorResource(R.color.electric_green)
-        ),
-        modifier=modifier
-    )
-}
-@Composable
-fun SearchTextField(cur_text: String,singleLine: Boolean,onValueChanged: (String) -> Unit,modifier: Modifier){
-    BasicTextField(
-        value = cur_text,
-        onValueChange = { onValueChanged(it) },
-        textStyle = TextStyle(
-            color=colorResource(R.color.electric_green),
-            fontSize = 16.sp
-        ),
-        singleLine = singleLine,
-        modifier = modifier
-        )
-}
+
 @Composable
 fun CustomTagsSuggestionShower(cur_text:String,mainViewModel: MainViewModel,exclude:List<String>,modifier:Modifier=Modifier){
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp),modifier=modifier.horizontalScroll(rememberScrollState())) {

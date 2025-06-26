@@ -7,11 +7,13 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("check_credentials")
-    fun CheckUsernameAndPassword(@Query("username") username:String,@Query("password") password:String):Call<CheckUser>
 
-    @POST("register_user")
-    fun RegisterUser(@Body user: User): Call<CheckSuccess>
+    @POST("login")
+    fun Login(@Body user:User):Call<Token>
+
+    @POST("signup")
+    fun SignUp(@Body user: User):Call<Token>
+
 
     @GET("user_doubts")
     fun GetDoubts(@Query("username") username: String):Call<List<Doubt>>
@@ -35,5 +37,9 @@ interface ApiService {
     fun GetRecentQuestions():Call<List<Doubt>>
 
     @GET("user_info")
-    fun GetUserInfo(@Query("username") username: String): Call<UserInfo>
+    fun GetUserInfo(): Call<UserInfo>
+
+    @GET("questions")
+    fun GetAllDoubts():Call<List<Doubt>>
+
 }

@@ -1,8 +1,10 @@
 package com.example.asknitt
 
 import android.R.attr.data
+import android.R.attr.level
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -16,7 +18,10 @@ enum class MainScreenRoutes{
 
                         MY_DOUBTS,
                             MY_DOUBTS_LIST,
-                            ADD_DOUBT
+                            ADD_DOUBT,
+
+                        SEARCH_STUFF,
+                            SEARCH
 }
 enum class AuthScreenRoutes{
     AUTH,
@@ -42,10 +47,9 @@ val MAX_TAG_LENGTH=50
 val MAX_ANSWER_LENGTH=5000
 
 data class User(val username:String, val password:String)
-data class CheckUser(val user_exists:Boolean,val error_msg:String)
-data class CheckSuccess(val success: Boolean)
+data class CheckSuccess(val success: Boolean,val token:String?="",val error_msg:String?="")
 data class AllScreensNamesItem(val route:String,val label:String,val icon: ImageVector)
-
+data class Token(val token:String,val msg:String)
 data class PostDoubtItem(val username: String,val title:String,val question: String,val tags:List<String>)
 data class Tags(val tags:List<String>)
 data class Answer(val answer_id:Int,val answered_username:String,val answer_timestamp: String,val answer: String,val upvotes:Int,val downvotes:Int)
@@ -53,16 +57,22 @@ data class Vote(val add_to_upvote:Int=0,val add_to_downvote:Int=0,val answer_id:
 data class PostAnswerToDoubtItem(val question_id: Int,val answer: String,val answered_username: String)
 @Serializable
 data class Doubt(val posted_username:String,val question_id:Int,val title:String,val question:String,val tags:List<String>,val question_timestamp:String)
-data class UserInfo(val username: String,val people_helped:Int,val questions_asked:Int)
+data class UserInfo(val username: String,val people_helped:Int,val questions_asked:Int,val token:String="",val error_msg: String="")
 
+
+var JWT_TOKEN=""
+var SHARED_PREFS_FILENAME="ASKNITT"
+val authinterceptor= Interceptor{chain->
+    val request = chain.request().newBuilder()//newBuilder=modifiable version
+        .addHeader("Authorization", JWT_TOKEN)
+        .build()
+    chain.proceed(request)
+}
 val client= OkHttpClient.Builder()
     .connectTimeout(5, TimeUnit.SECONDS)
     .readTimeout(5, TimeUnit.SECONDS)
-    .addInterceptor(HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    })
+    .addInterceptor(authinterceptor)
     .build()
-
 
 val retrofit= Retrofit.Builder()
     .baseUrl("http://192.168.29.195:5000")

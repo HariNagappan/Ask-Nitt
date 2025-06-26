@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -76,6 +77,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
     var can_edit_question by remember { mutableStateOf(true) }
     var can_edit_tags by remember { mutableStateOf(true) }
 
+    var exp_sig by remember { mutableStateOf(false) }
     val context=LocalContext.current
     LaunchedEffect(question_text) {
         scollState.animateScrollTo(scollState.maxValue)
@@ -174,6 +176,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                                     tag_search_text = new_text
                                 }
                             },
+                            placeholder_text = "Search for Tags",
                             modifier = Modifier
                                 .height(36.dp)
                                 .background(
@@ -288,20 +291,35 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
             mainViewModel=mainViewModel,
             onSuccess = {msg->
                 navController.navigateUp()//alreasy cleared question tags in miainviewmodel.PostUserDoubt
-                Toast.makeText(context,"Successfully Posted Question", Toast.LENGTH_LONG).show()
+                Toast.makeText(context,"Successfully Posted Question", Toast.LENGTH_SHORT).show()
                 Log.d("apisuccess","from AddDoubtScreen: success posting question")
                 should_show_intermediate_screen=false
             },
             onFailure = {msg->
-                Toast.makeText(context,"Error:$msg", Toast.LENGTH_LONG).show()
-                Log.d("apifailure","from AddDoubtScreen: error posting question")
-                should_show_intermediate_screen=false
-                can_edit_title=true
-                can_edit_question=true
-                can_edit_tags=true
+                if(msg== context.getString((R.string.expired_signature))){
+                    exp_sig=true
+                }
+                else {
+                    Toast.makeText(context, "Error:$msg", Toast.LENGTH_LONG).show()
+                    Log.d("apifailure", "from AddDoubtScreen: error posting question")
+                    should_show_intermediate_screen = false
+                    can_edit_title = true
+                    can_edit_question = true
+                    can_edit_tags = true
+                }
             }
-
         )
+    }
+    LaunchedEffect(exp_sig) {
+        if(exp_sig){
+            navController.navigate(AuthScreenRoutes.AUTH.name){
+                popUpTo(MainScreenRoutes.MAIN.name){
+                    inclusive=true
+                }
+            }
+            Toast.makeText(context,"Session Expired,Please Login Again",Toast.LENGTH_LONG).show()
+
+        }
     }
 }
 @Composable
@@ -341,7 +359,7 @@ fun AddDoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavCo
             onFinish = {success,new_msg->
                 issuccess=success
                 msg=new_msg
-                Log.d("apisuccess","executed")
+                Log.d("apisuccess","AddDoubtScreenIntermediate")
             })
     }
     Box(modifier=Modifier.fillMaxSize()){

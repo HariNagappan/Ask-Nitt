@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Ask NITT</string>
+    <string name="expired_signature">Expired Signature</string>
+    <string name="invalid_token">Invalid Token</string>
 </resources>

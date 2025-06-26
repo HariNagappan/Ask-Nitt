@@ -1,6 +1,7 @@
 package com.example.asknitt
 
 import android.R.attr.top
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,8 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +51,7 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
                 .align(Alignment.Center)
                 .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
             Text(
-                text="WELCOME, ${mainViewModel.username}",
+                text="WELCOME ${mainViewModel.username}",
                 fontSize = 24.sp,
                 fontFamily = FontFamily(Font(R.font.headings)),
                 modifier=Modifier.align(Alignment.Start),
@@ -99,10 +102,9 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel,navController: NavContro
     var error_msg1 by remember { mutableStateOf("") }
     var issuccess2 by remember { mutableStateOf(false) }
     var error_msg2 by remember { mutableStateOf("") }
-
+    val context=LocalContext.current
     LaunchedEffect(retrycount) {
         mainViewModel.GetUserInfo(
-            username = mainViewModel.username,
             onFinish ={success,msg->
                 issuccess1=success
                 error_msg1=msg
@@ -114,6 +116,20 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel,navController: NavContro
                 error_msg2=msg
             }
         )
+    }
+    if(error_msg1== stringResource(R.string.expired_signature) || error_msg1== stringResource(R.string.expired_signature)) {
+        LaunchedEffect(Unit) {
+            navController.navigate(AuthScreenRoutes.AUTH.name) {
+                popUpTo(MainScreenRoutes.MAIN.name) {
+                    inclusive = true
+                }
+            }
+            Toast.makeText(
+                context,
+                "Session Expired,Please Login Again",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
     Box(modifier=Modifier.fillMaxSize()){
         if(!(issuccess1 && issuccess2) && (error_msg1=="" && error_msg2=="")){
