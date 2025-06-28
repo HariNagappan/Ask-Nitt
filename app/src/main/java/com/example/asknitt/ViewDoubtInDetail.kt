@@ -1,7 +1,9 @@
 package com.example.asknitt
 
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: MainViewModel){
     //TODO add edit doubt later
@@ -77,7 +81,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 .border(width = 2.dp, color = colorResource(R.color.electric_green), shape = CircleShape)
                 .clip(CircleShape)) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Go Back",
                 tint=colorResource(R.color.electric_green)
             )
@@ -141,7 +145,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 )
             }
             Text(
-                text = "Posted On: (UTC) ${doubt.question_timestamp}",
+                text = "Posted On: ${GetUtcInLocalTime(doubt.question_timestamp)}",
                 fontSize = 16.sp,
                 color=colorResource(R.color.electric_green),
                 //fontFamily = FontFamily(Font(R.font.stripes)),
@@ -225,6 +229,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavController){
     Card(
@@ -251,7 +256,7 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavCo
                 modifier=Modifier.align(Alignment.End)
             )
             Text(
-                text="At ${answer.answer_timestamp} (UTC)",
+                text="At ${GetUtcInLocalTime(answer.answer_timestamp)}",
                 color=colorResource(R.color.electric_green),
                 fontSize = 12.sp,
                 modifier=Modifier.align(Alignment.End)
@@ -384,6 +389,7 @@ fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainVi
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ViewDoubtInDetailIntermediate(doubt: Doubt,navController: NavController,mainViewModel: MainViewModel){
     var issuccess by remember{ mutableStateOf(false) }

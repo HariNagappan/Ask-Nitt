@@ -1,6 +1,7 @@
 package com.example.asknitt
 
 import android.R.attr.data
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.MutableState
@@ -15,7 +16,9 @@ import androidx.security.crypto.MasterKeys
 import retrofit2.Callback
 import retrofit2.Call
 import retrofit2.Response
+import java.time.LocalDate
 import kotlin.collections.map
+import kotlin.to
 
 class MainViewModel: ViewModel() {
     var username by mutableStateOf("")
@@ -26,13 +29,20 @@ class MainViewModel: ViewModel() {
 
     var user_doubts: MutableList<Doubt> =mutableStateListOf()
     var recent_doubts: MutableList<Doubt> =mutableStateListOf()
-    var all_doubts:MutableList<Doubt> =mutableStateListOf()
+    var filtered_doubts:MutableList<Doubt> =mutableStateListOf()
 
     val tags: MutableList<String> =mutableStateListOf() 
     var cur_question_tags: MutableList<String> =mutableStateListOf()
+    var search_question_tags: MutableList<String> =mutableStateListOf()
+
     var cur_question_answers: MutableList<Answer> =mutableStateListOf()
     var user_questions_asked by mutableStateOf(0)
     var user_questions_helped by mutableStateOf(0)
+
+    var from_date by mutableStateOf(LocalDate.now())
+    var to_date by mutableStateOf(LocalDate.now())
+
+
     fun SetUsername(new_username: String) {
         username = new_username
     }
@@ -169,6 +179,7 @@ class MainViewModel: ViewModel() {
                 if(response.isSuccessful){
                     val tmp=response.body()
                     val all_tags=tmp?.tags
+                    tags.clear()
                     tags.addAll(all_tags!!)
                     onFinish(true,"")
                 }
@@ -355,24 +366,42 @@ class MainViewModel: ViewModel() {
 
         })
     }
-    fun GetAllDoubts(onFinish: (Boolean, String) -> Unit){
-        val call=api.GetAllDoubts()
+    @SuppressLint("NewApi")
+    fun SearchDoubts(search_text:String, onFinish: (Boolean, String) -> Unit){
+        val call=api.GetDoubtsByFilter(
+            search_text=search_text,
+            tags=search_question_tags,
+            from_date=GetLocalInUTC(from_date.toString(), start_of_day = true),
+            to_date=GetLocalInUTC(to_date.toString(), start_of_day = true
+            ))
         call.enqueue(object:Callback<List<Doubt>>{
-            override fun onResponse(all: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
+            override fun onResponse(call: Call<List<Doubt>>, response: Response<List<Doubt>>) {
                 if(response.isSuccessful){
-                    onFinish(true,"")
+                    val lst=response.body()
+                    if(lst!=null){
+                        filtered_doubts.clear()
+                        filtered_doubts.addAll(lst)
+                        onFinish(true,"")
+                        Log.d("apisuccess","Successfully searched doubts:$filtered_doubts")
+                    }
+                    else{
+                        onFinish(false,"Could not get data,Please try again later")
+                        Log.d("apifailure","this is from SearchDoubts(), ${response.message()}")
+                    }
                 }
                 else{
-                    Log.d("apifailure","this is from GetAllDoubts(), ${response.message()}")
-                    onFinish(false,"Error:${response.message()}")
+                    onFinish(false,response.message())
+                    Log.d("apifailure","this is from SearchDoubts(), ${response.message()}")
                 }
             }
-            override fun onFailure(call: Call<List<Doubt>?>, t: Throwable) {
-                onFinish(false,"Error:${t.message}")
-                Log.d("apifailure","this is from GetAllDoubts(), ${t.message}")
+
+            override fun onFailure(call: Call<List<Doubt>>, t: Throwable) {
+                onFinish(false,"${t.message}")
+                Log.d("apifailure","this is from SearchDoubts(), ${t.message}")
             }
         })
     }
+
 
     fun SaveJWTToken(context: Context){
         val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)

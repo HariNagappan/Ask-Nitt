@@ -5,10 +5,12 @@ import android.R.attr.name
 import android.content.Context
 import android.graphics.Paint
 import android.net.http.SslCertificate.restoreState
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -65,6 +67,7 @@ import java.util.Map.entry
 import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -81,6 +84,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
     Scaffold(
@@ -150,7 +154,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                     route = MainScreenRoutes.SEARCH_STUFF.name
                 ) {
                     composable(MainScreenRoutes.SEARCH.name) {
-                        SearchScreen(navController=navController,mainViewModel=mainViewModel)
+                        SearchScreenIntermediate(navController=navController,mainViewModel=mainViewModel)
                     }
                 }
             }

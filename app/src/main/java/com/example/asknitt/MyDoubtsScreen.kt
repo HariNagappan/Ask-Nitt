@@ -1,6 +1,8 @@
 package com.example.asknitt
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DoubtsScreen(mainViewModel: MainViewModel,navController: NavController ,modifier: Modifier=Modifier){
     Box(modifier=Modifier
@@ -83,7 +86,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel,navController: NavController ,modi
             else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(mainViewModel.user_doubts){doubt->
-                        DoubtCard(doubt = doubt, should_show_username = false,navController = navController,mainViewModel = mainViewModel)
+                        DoubtCard(doubt = doubt, should_show_username = false,navController = navController)
                     }
                 }
             }
@@ -108,8 +111,9 @@ fun DoubtsScreen(mainViewModel: MainViewModel,navController: NavController ,modi
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DoubtCard(mainViewModel: MainViewModel,should_show_username:Boolean ,navController: NavController,doubt: Doubt){
+fun DoubtCard(should_show_username:Boolean ,navController: NavController,doubt: Doubt){
     Card(
         colors=CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray)),
         modifier=Modifier
@@ -150,7 +154,7 @@ fun DoubtCard(mainViewModel: MainViewModel,should_show_username:Boolean ,navCont
                         tags = doubt.tags)
                 }
                 Text(
-                    text="Posted on: (UTC) ${doubt.question_timestamp}",
+                    text="Posted on: ${GetUtcInLocalTime(doubt.question_timestamp)}",
                     color= colorResource(R.color.electric_green),
                     fontSize = 16.sp,
                 )
@@ -158,6 +162,7 @@ fun DoubtCard(mainViewModel: MainViewModel,should_show_username:Boolean ,navCont
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
     var retrycount by remember { mutableStateOf(0) }
@@ -210,7 +215,7 @@ fun DoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavContr
 
 
 @Composable
-fun CustomTagsSuggestionShower(cur_text:String,mainViewModel: MainViewModel,exclude:List<String>,modifier:Modifier=Modifier){
+fun CustomTagsSuggestionShower(cur_text:String, add_to_lst: MutableList<String>, mainViewModel: MainViewModel, exclude:List<String>, modifier:Modifier=Modifier){
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp),modifier=modifier.horizontalScroll(rememberScrollState())) {
         val lst=mainViewModel.tags.filter { it.startsWith(cur_text) && !(it in exclude)}.take(10)
         lst.forEach { tag->
@@ -218,11 +223,10 @@ fun CustomTagsSuggestionShower(cur_text:String,mainViewModel: MainViewModel,excl
                 text=tag,
                 should_show_cross=false,
                 onClickText = {
-                    mainViewModel.cur_question_tags.add(tag)
+                    add_to_lst.add(tag)
+                    //Log.d("general","mainviewmodel.curquestiontags:${mainViewModel.cur_question_tags}")
                 },
-                onClickCross = {
-
-                }
+                onClickCross = {}
                 )
         }
     }
@@ -240,7 +244,7 @@ fun CustomTagsShowerRemovable(mainViewModel: MainViewModel,modifier:Modifier=Mod
                 should_show_cross = true,
                 onClickText = {},
                 onClickCross = {
-                    mainViewModel.cur_question_tags.remove(tag)
+                    tags_to_remove.add(tag)
                 }
             )
         }

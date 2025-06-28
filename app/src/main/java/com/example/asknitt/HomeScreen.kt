@@ -1,7 +1,9 @@
 package com.example.asknitt
 
 import android.R.attr.top
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
     Box(modifier=Modifier
@@ -89,7 +92,7 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
                 modifier=Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 items(mainViewModel.recent_doubts) {doubt->
-                    DoubtCard(mainViewModel=mainViewModel, should_show_username = true,navController = navController, doubt = doubt)
+                    DoubtCard(should_show_username = true,navController = navController, doubt = doubt)
                 }
             }
         }

@@ -39,7 +39,11 @@ interface ApiService {
     @GET("user_info")
     fun GetUserInfo(): Call<UserInfo>
 
-    @GET("questions")
-    fun GetAllDoubts():Call<List<Doubt>>
+    @GET("questions_filter")
+    fun GetDoubtsByFilter(@Query("search_text") search_text:String,
+                     @Query("tags") tags:List<String>,
+                     @Query("from_date") from_date:String,
+                     @Query("to_date") to_date:String):Call<List<Doubt>>
+
 
 }

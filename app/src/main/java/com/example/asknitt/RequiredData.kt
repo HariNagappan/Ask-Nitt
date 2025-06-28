@@ -2,6 +2,8 @@ package com.example.asknitt
 
 import android.R.attr.data
 import android.R.attr.level
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
 import okhttp3.Interceptor
@@ -9,6 +11,12 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
 enum class MainScreenRoutes{
@@ -46,6 +54,29 @@ val MAX_QUESTION_LENGTH=5000
 val MAX_TAG_LENGTH=50
 val MAX_ANSWER_LENGTH=5000
 
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun GetUtcInLocalTime(utc_time:String):String{
+    val formatter= DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    val utcDateTime = LocalDateTime.parse(utc_time, formatter).atZone(ZoneOffset.UTC)
+    val localDateTime = utcDateTime.withZoneSameInstant(ZoneId.systemDefault())
+    val displayFormat = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")
+    return localDateTime.format(displayFormat)
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun GetLocalInUTC(local: String,start_of_day:Boolean): String {
+    val systemZone = ZoneId.systemDefault()
+    val formatter= DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val return_format= DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    val localdate=LocalDate.parse(local,formatter)
+    val localdatetime=if(start_of_day) localdate.atStartOfDay() else localdate.atStartOfDay().apply { plusDays(1) }
+    val localzone = localdatetime.atZone(systemZone)
+    val utczoned =localzone.withZoneSameInstant(ZoneOffset.UTC)
+    return utczoned.format(return_format)
+
+}
+
 data class User(val username:String, val password:String)
 data class CheckSuccess(val success: Boolean,val token:String?="",val error_msg:String?="")
 data class AllScreensNamesItem(val route:String,val label:String,val icon: ImageVector)
@@ -58,7 +89,7 @@ data class PostAnswerToDoubtItem(val question_id: Int,val answer: String,val ans
 @Serializable
 data class Doubt(val posted_username:String,val question_id:Int,val title:String,val question:String,val tags:List<String>,val question_timestamp:String)
 data class UserInfo(val username: String,val people_helped:Int,val questions_asked:Int,val token:String="",val error_msg: String="")
-
+data class FilterItem(val idx:Int,val name:String)
 
 var JWT_TOKEN=""
 var SHARED_PREFS_FILENAME="ASKNITT"

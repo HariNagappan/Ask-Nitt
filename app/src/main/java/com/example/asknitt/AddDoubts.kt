@@ -184,7 +184,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                                     shape = RoundedCornerShape(32.dp)
                                 )
                                 .border(
-                                    width = 3.dp,
+                                    width = 1.dp,
                                     color = colorResource(R.color.electric_pink),
                                     shape = RoundedCornerShape(32.dp)
                                 )
@@ -216,6 +216,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                 AnimatedVisibility(tag_search_focused) {
                     CustomTagsSuggestionShower(
                         cur_text = tag_search_text,
+                        add_to_lst = mainViewModel.cur_question_tags,
                         mainViewModel = mainViewModel,
                         exclude = mainViewModel.cur_question_tags
                     )
@@ -394,6 +395,7 @@ fun AddDoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavCo
             }
         }
         else{
+            mainViewModel.cur_question_tags.clear()
             AddDoubtScreen(mainViewModel=mainViewModel,navController=navController)
         }
     }
