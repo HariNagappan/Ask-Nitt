@@ -43,7 +43,8 @@ interface ApiService {
     fun GetDoubtsByFilter(@Query("search_text") search_text:String,
                      @Query("tags") tags:List<String>,
                      @Query("from_date") from_date:String,
-                     @Query("to_date") to_date:String):Call<List<Doubt>>
+                     @Query("to_date") to_date:String,
+                          @Query("status") status: String):Call<List<Doubt>>
     @GET("get_users")
     fun GetUsersByName(@Query("username_search_text") username_search_text:String):Call<List<GeneralUser>>
 
@@ -68,5 +69,7 @@ interface ApiService {
     @GET("user_friend_request_sent")
     fun GetUserFriendRequestsSent():Call<List<GeneralUser>>
 
+    @POST("mark_doubt_solved")
+    fun MarkQuestionSolved(@Body markQuestionSolvedItem: MarkQuestionSolvedItem):Call<CheckSuccess>
 
 }

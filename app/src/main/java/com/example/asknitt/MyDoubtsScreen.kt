@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material3.Button
@@ -86,7 +88,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel,navController: NavController ,modi
             else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(mainViewModel.user_doubts){doubt->
-                        DoubtCard(doubt = doubt, should_show_username = false,navController = navController)
+                        DoubtCard(doubt = doubt, navController = navController)
                     }
                 }
             }
@@ -113,7 +115,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel,navController: NavController ,modi
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DoubtCard(should_show_username:Boolean ,navController: NavController,doubt: Doubt){
+fun DoubtCard(navController: NavController,doubt: Doubt){
     Card(
         colors=CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray)),
         modifier=Modifier
@@ -123,6 +125,13 @@ fun DoubtCard(should_show_username:Boolean ,navController: NavController,doubt: 
             }
     ) {
         Box{
+            Icon(
+                imageVector = Icons.Default.Circle,
+                contentDescription = "Status",
+                tint=if(doubt.status== QuestionStatus.PENDING) colorResource(R.color.electric_green) else colorResource(R.color.electric_red),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+            )
             Column(modifier = Modifier.fillMaxSize().align(Alignment.Center).padding(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(modifier=Modifier.fillMaxWidth()) {
                     Text(
@@ -130,14 +139,14 @@ fun DoubtCard(should_show_username:Boolean ,navController: NavController,doubt: 
                         fontSize = 16.sp,
                         color = colorResource(R.color.electric_gold)
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    if(should_show_username) {
-                        Text(
-                            text = "Asked by: ${doubt.posted_username}",
-                            fontSize = 16.sp,
-                            color = colorResource(R.color.electric_pink)
-                        )
-                    }
+//                    Spacer(modifier = Modifier.weight(1f))
+//                    if(should_show_username) {
+//                        Text(
+//                            text = "Asked by: ${doubt.posted_username}",
+//                            fontSize = 16.sp,
+//                            color = colorResource(R.color.electric_pink)
+//                        )
+//                    }
                 }
                 Text(
                     text=doubt.title,
@@ -180,25 +189,21 @@ fun CustomTagsSuggestionShower(cur_text:String, add_to_lst: MutableList<String>,
     }
 }
 @Composable
-fun CustomTagsShowerRemovable(mainViewModel: MainViewModel,modifier:Modifier=Modifier) {
-    var tags_to_remove = remember { mutableStateListOf<String>() }
+fun CustomTagsShowerRemovable(from_lst: MutableList<String>, modifier:Modifier=Modifier) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier.horizontalScroll(rememberScrollState())
     ) {
-        mainViewModel.cur_question_tags.forEach { tag->
+        from_lst.forEach { tag->
             TagItem(
                 text=tag,
                 should_show_cross = true,
                 onClickText = {},
                 onClickCross = {
-                    tags_to_remove.add(tag)
+                    from_lst.remove(tag)
                 }
             )
         }
-    }
-    for(tag in tags_to_remove){
-        mainViewModel.cur_question_tags.remove(tag)
     }
 }
 @Composable

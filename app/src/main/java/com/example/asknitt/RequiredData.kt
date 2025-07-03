@@ -51,13 +51,16 @@ enum class FriendRequestStatus {
     ACCEPTED,
     NOT_SENT
 }
-
+enum class QuestionStatus{
+    ANY,//to be used only for doubt filter
+    SOLVED,
+    PENDING
+}
 
 val MAX_TITLE_LENGTH=100
 val MAX_QUESTION_LENGTH=5000
 val MAX_TAG_LENGTH=50
 val MAX_ANSWER_LENGTH=5000
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun GetUtcInLocalTime(utc_time:String):String{
@@ -74,7 +77,7 @@ fun GetLocalInUTC(local: String,start_of_day:Boolean): String {
     val formatter= DateTimeFormatter.ofPattern("yyyy-MM-dd")
     val return_format= DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     val localdate=LocalDate.parse(local,formatter)
-    val localdatetime=if(start_of_day) localdate.atStartOfDay() else localdate.atStartOfDay().apply { plusDays(1) }
+    val localdatetime=if(start_of_day) localdate.atStartOfDay() else localdate.plusDays(1).atStartOfDay()
     val localzone = localdatetime.atZone(systemZone)
     val utczoned =localzone.withZoneSameInstant(ZoneOffset.UTC)
     return utczoned.format(return_format)
@@ -91,17 +94,21 @@ data class Answer(val answer_id:Int,val answered_username:String,val answer_time
 data class Vote(val add_to_upvote:Int=0,val add_to_downvote:Int=0,val answer_id: Int)
 data class PostAnswerToDoubtItem(val question_id: Int,val answer: String,val answered_username: String)
 @Serializable
-data class Doubt(val posted_username:String,val question_id:Int,val title:String,val question:String,val tags:List<String>,val question_timestamp:String)
+data class Doubt(val posted_username:String, val question_id:Int, val title:String, val question:String, val tags:List<String>, val question_timestamp:String,
+                 var status: QuestionStatus)
 data class CurrentUserInfo(val username: String,val people_helped:Int,val questions_asked:Int,val joined_on:String,val token:String="",val error_msg: String="")
 data class OtherUserInfo(val username: String, val people_helped:Int, val questions_asked:Int, val joined_on:String, val token:String="", val error_msg: String="",
                          var friend_status: FriendRequestStatus, var is_current_user_sender_of_request:Boolean)
 data class FilterItem(val idx:Int,val name:String)
 @Serializable
 data class GeneralUser(val username:String)
+data class MarkQuestionSolvedItem(val question_id:Int)
 
 val privacy_modes=listOf("PRIVATE","FRIENDS ONLY","PUBLIC")
 var JWT_TOKEN=""
-var SHARED_PREFS_FILENAME="ASKNITT"
+var SHARED_PREFS_FILENAME_ENCRYPTED="ASKNITT"
+var SHARED_PREFS_FILENAME_NORMAL="ASKNITT_NORMAL"
+
 val authinterceptor= Interceptor{chain->
     val request = chain.request().newBuilder()//newBuilder=modifiable version
         .addHeader("Authorization", JWT_TOKEN)

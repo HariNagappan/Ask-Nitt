@@ -3,7 +3,6 @@ package com.example.asknitt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,11 +16,16 @@ import android.app.DatePickerDialog
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FilterListOff
 import androidx.compose.material.icons.filled.Search
@@ -34,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
@@ -131,7 +137,6 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
                     .verticalScroll(rememberScrollState())) {
                 mainViewModel.filtered_doubts.forEach { doubt ->
                     DoubtCard(
-                        should_show_username = true,
                         navController = navController,
                         doubt=doubt
                     )
@@ -161,7 +166,8 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
 fun FilterBox(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
     val filters:List<FilterItem> =listOf(
         FilterItem(idx=0,name="Tags"),
-        FilterItem(idx=1,name="Timestamp")
+        FilterItem(idx=1,name="Timestamp"),
+        FilterItem(idx=2,name="Status")
         )
     var selectedoption by remember { mutableStateOf(filters[0].name) }
     Box(modifier=Modifier
@@ -196,6 +202,10 @@ fun FilterBox(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
                 "Timestamp" -> {
                     TimeStampSelectionTab(mainViewModel=mainViewModel)
                 }
+
+                "Status" -> {
+                    StatusSelectionTab(mainViewModel=mainViewModel)
+                }
             }
         }
     }
@@ -207,37 +217,57 @@ fun TagsSelectionTab(mainViewModel: MainViewModel,modifier: Modifier=Modifier){
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SearchTextField(
-            cur_text = tag_search_text,
-            singleLine = true,
-            onValueChanged = { new_text ->
-                if (new_text.length <= MAX_TAG_LENGTH) {
-                    tag_search_text = new_text
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier=Modifier.fillMaxWidth()) {
+            SearchTextField(
+                cur_text = tag_search_text,
+                singleLine = true,
+                onValueChanged = { new_text ->
+                    if (new_text.length <= MAX_TAG_LENGTH) {
+                        tag_search_text = new_text
+                    }
+                },
+                placeholder_text = "Search for Tags",
+                modifier = Modifier
+                    .height(36.dp)
+                    .background(
+                        colorResource(R.color.dark_gray),
+                        shape = RoundedCornerShape(32.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = colorResource(R.color.electric_pink),
+                        shape = RoundedCornerShape(32.dp)
+                    )
+                    .padding(8.dp)
+            )
+            AnimatedVisibility(mainViewModel.search_question_tags.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        mainViewModel.search_question_tags.clear()
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_red))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete All Tags",
+                        tint = colorResource(R.color.white)
+                    )
                 }
-            },
-            placeholder_text = "Search for Tags",
-            modifier = Modifier
-                .height(36.dp)
-                .background(
-                    colorResource(R.color.dark_gray),
-                    shape = RoundedCornerShape(32.dp)
-                )
-                .border(
-                    width = 1.dp,
-                    color = colorResource(R.color.electric_pink),
-                    shape = RoundedCornerShape(32.dp)
-                )
-                .padding(8.dp)
-        )
+            }
+        }
         CustomTagsSuggestionShower(
             cur_text = tag_search_text,
             add_to_lst = mainViewModel.search_question_tags,
             mainViewModel = mainViewModel,
-            exclude = mainViewModel.cur_question_tags
+            exclude = mainViewModel.search_question_tags
         )
-        CustomTagsShowerRemovable(mainViewModel=mainViewModel)
+        CustomTagsShowerRemovable(from_lst = mainViewModel.search_question_tags)
     }
 }
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TimeStampSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
@@ -320,5 +350,40 @@ fun TimeStampSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifie
             show_to_date_picker=false
         }
         datePickerDialog.show()
+    }
+}
+
+@Composable
+fun StatusSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
+    var selected_status by remember { mutableStateOf(mainViewModel.status_doubt_filter) }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier=Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text="Status"
+        )
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier=Modifier.fillMaxWidth()){
+            QuestionStatus.entries.forEach {question_status->
+                val isselected=(question_status==selected_status)
+                Text(
+                    text=if(question_status== QuestionStatus.PENDING) "UNSOLVED" else question_status.name,
+                    fontSize=16.sp,
+                    color=if(isselected) colorResource(R.color.electric_green) else colorResource(R.color.white),
+                    modifier= Modifier
+                        .clickable{
+                            selected_status=question_status
+                            mainViewModel.status_doubt_filter=question_status
+                        }
+                        .border(width=1.dp,color=if(isselected) colorResource(R.color.electric_pink) else Color.Transparent,shape=RoundedCornerShape(8.dp))
+                        .padding(4.dp)
+                )
+                Spacer(modifier=Modifier.width(16.dp))
+            }
+        }
     }
 }

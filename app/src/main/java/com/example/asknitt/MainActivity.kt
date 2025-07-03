@@ -364,7 +364,7 @@ fun GetBottomBarEntries():List<AllScreensNamesItem>{
 fun Get_JWT_Token_From_Preferences(context: Context){
     val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
     val prefs = EncryptedSharedPreferences.create(
-        SHARED_PREFS_FILENAME,
+        SHARED_PREFS_FILENAME_ENCRYPTED,
         masterKeyAlias,
         context,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,

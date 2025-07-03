@@ -1,5 +1,6 @@
 package com.example.asknitt
 
+import android.R.attr.fontFamily
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -65,13 +66,17 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
     var should_show_post_answer by remember{mutableStateOf(false)}
     var scrollstate = rememberScrollState()
     var answer_text by remember { mutableStateOf("") }
+    var show_mark_as_solved by remember { mutableStateOf(false) }
     LaunchedEffect(answer_text) {
         if(answer_text!="")
             scrollstate.animateScrollTo(scrollstate.maxValue)
     }
     Box(modifier=Modifier.fillMaxSize().background(colorResource(R.color.black))){
         IconButton(onClick = {
+            val prev = navController.previousBackStackEntry!!.destination!!.route!!
             navController.navigateUp()
+            navController.navigateUp()
+            navController.navigate(prev)
         },
             colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent),
             modifier= Modifier
@@ -95,9 +100,50 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 .padding(top=dimensionResource(R.dimen.from_top_padding)*2,bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
                 .verticalScroll(scrollstate)
         ) {
+            Column(modifier=Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Question ID:" + doubt.question_id,
+                        color = colorResource(R.color.electric_gold),
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.headings)),
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "Status: " + if(doubt.status== QuestionStatus.SOLVED) "solved" else QuestionStatus.PENDING,
+                        color = if (doubt.status == QuestionStatus.PENDING) colorResource(R.color.electric_blue) else colorResource(
+                            R.color.electric_green
+                        ),
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.headings)),
+                    )
+                }
+                if (doubt.posted_username == mainViewModel.username && doubt.status == QuestionStatus.PENDING) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(
+                            onClick = {
+                                show_mark_as_solved = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.dark_gray))
+                        ) {
+                            Text(
+                                text = "Mark as Solved",
+                                color = colorResource(R.color.electric_green),
+                                fontSize = 16.sp,
+                                fontFamily = FontFamily(Font(R.font.foldable)),
+                            )
+                        }
+                    }
+                }
+            }
             Text(
                 text=doubt.title,
-                lineHeight =50.sp,
+                lineHeight =40.sp,
                 color=colorResource(R.color.electric_gold),
                 fontSize = 24.sp,
                 fontFamily = FontFamily(Font(R.font.headings)),
@@ -116,7 +162,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 )
                 Text(
                     text = doubt.question,
-                    lineHeight = 36.sp,
+                    lineHeight = 20.sp,
                     color = colorResource(R.color.white),
                     fontSize = 16.sp,
                     modifier = Modifier
@@ -226,6 +272,28 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                     }
                 )
             }
+        }
+        if(show_mark_as_solved){
+            LoadingScreenWithToast(
+                inside_launched_effect = {onResult->
+                    mainViewModel.MarkQuestionAsSolved(
+                        question_id = doubt.question_id,
+                        onFinish = {success,msg->
+                            onResult(success,msg)
+                        }
+                    )
+                },
+                navController=navController,
+                success_message = "Marked Question as Solved",
+                should_show_success_toast = true,
+                onSuccess = {
+                    doubt.status= QuestionStatus.SOLVED
+                    show_mark_as_solved=false
+                },
+                onFailure = {
+                    show_mark_as_solved=false
+                }
+            )
         }
     }
 }

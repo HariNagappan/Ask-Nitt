@@ -31,6 +31,7 @@ class MainViewModel: ViewModel() {
     val all_users:MutableList<GeneralUser> =mutableStateListOf()
     var other_user_info: OtherUserInfo?=null
 
+
     var user_doubts: MutableList<Doubt> =mutableStateListOf()
     var recent_doubts: MutableList<Doubt> =mutableStateListOf()
     var filtered_doubts:MutableList<Doubt> =mutableStateListOf()
@@ -50,6 +51,7 @@ class MainViewModel: ViewModel() {
     var from_date by mutableStateOf(LocalDate.now())
     var to_date by mutableStateOf(LocalDate.now())
     var joined_on by mutableStateOf("")
+    var status_doubt_filter by mutableStateOf(QuestionStatus.ANY)
 
 
     fun SetUsername(new_username: String) {
@@ -295,8 +297,8 @@ class MainViewModel: ViewModel() {
             search_text=search_text,
             tags=search_question_tags,
             from_date=GetLocalInUTC(from_date.toString(), start_of_day = true),
-            to_date=GetLocalInUTC(to_date.toString(), start_of_day = true
-            ))
+            to_date=GetLocalInUTC(to_date.toString(), start_of_day = false),
+            status = status_doubt_filter.name)
         call.enqueue(object:Callback<List<Doubt>>{
             override fun onResponse(call: Call<List<Doubt>>, response: Response<List<Doubt>>) {
                 if(response.isSuccessful){
@@ -324,7 +326,37 @@ class MainViewModel: ViewModel() {
             }
         })
     }
+    fun MarkQuestionAsSolved(question_id: Int,onFinish: (Boolean, String) -> Unit){
+        val call=api.MarkQuestionSolved(MarkQuestionSolvedItem(question_id=question_id))
+        call.enqueue(object:Callback<CheckSuccess>{
+            override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
+                if(response.isSuccessful){
+                    val tmp=response.body()
+                    if(tmp!=null) {
+                        if (tmp.error_msg == "" || tmp.error_msg == null) {
+                            Log.d("apisuccess", "From MarkQuestionAsSolved(): Successfully Posted Answer")
+                            onFinish(true, "")
+                        }
+                        else{
+                            onFinish(false,tmp.error_msg)
+                        }
+                    }
+                    else{
+                        onFinish(false,"got null response")
+                    }
+                }
+                else{
+                    Log.d("apifailure","From MarkQuestionAsSolved(): ${response.message()}")
+                    onFinish(false,response.message())
+                }
+            }
 
+            override fun onFailure(call: Call<CheckSuccess?>, t: Throwable) {
+                Log.d("apifailure","From MarkQuestionAsSolved(): ${t.message}")
+                onFinish(false,"${t.message}")
+            }
+        })
+    }
 
     fun ClearCurrentQuestionTags(){
         cur_question_tags.clear()
@@ -637,7 +669,7 @@ class MainViewModel: ViewModel() {
     fun SaveJWTToken(context: Context){
         val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         val prefs = EncryptedSharedPreferences.create(
-            SHARED_PREFS_FILENAME, // filename
+            SHARED_PREFS_FILENAME_ENCRYPTED, // filename
             masterKey,
             context,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
@@ -650,7 +682,7 @@ class MainViewModel: ViewModel() {
     fun DeleteJWTToken(context: Context){
         val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         val prefs = EncryptedSharedPreferences.create(
-            SHARED_PREFS_FILENAME, // filename
+            SHARED_PREFS_FILENAME_ENCRYPTED, // filename
             masterKey,
             context,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,

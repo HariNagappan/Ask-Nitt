@@ -97,7 +97,7 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
                 modifier=Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 items(mainViewModel.recent_doubts) {doubt->
-                    DoubtCard(should_show_username = true,navController = navController, doubt = doubt)
+                    DoubtCard(navController = navController, doubt = doubt)
                 }
             }
         }

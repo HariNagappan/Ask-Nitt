@@ -222,7 +222,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                     )
                 }
             }
-            CustomTagsShowerRemovable(mainViewModel=mainViewModel)
+            CustomTagsShowerRemovable(from_lst = mainViewModel.cur_question_tags)
 
             Row(modifier=Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center){
                 Button(onClick = {
