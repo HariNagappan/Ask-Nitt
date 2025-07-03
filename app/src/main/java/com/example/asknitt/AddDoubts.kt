@@ -286,117 +286,31 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
         can_edit_title=false
         can_edit_question=false
         can_edit_tags=false
-        PostDoubtScreenIntermediate(
-            title=title_text,
-            question=question_text,
-            mainViewModel=mainViewModel,
-            onSuccess = {msg->
+        LoadingScreenWithToast(
+            inside_launched_effect = {onResult->
+                mainViewModel.PostUserDoubt(
+                    title=title_text,
+                    question=question_text,
+                    onFinish = {success,msg->
+                        onResult(success,msg)
+                    }
+                )
+            },
+            navController=navController,
+            should_show_success_toast = true,
+            success_message = "Successfully Posted Question",
+            onSuccess = {
                 navController.navigateUp()//alreasy cleared question tags in miainviewmodel.PostUserDoubt
-                Toast.makeText(context,"Successfully Posted Question", Toast.LENGTH_SHORT).show()
                 Log.d("apisuccess","from AddDoubtScreen: success posting question")
                 should_show_intermediate_screen=false
             },
-            onFailure = {msg->
-                if(msg== context.getString((R.string.expired_signature))){
-                    exp_sig=true
-                }
-                else {
-                    Toast.makeText(context, "Error:$msg", Toast.LENGTH_LONG).show()
-                    Log.d("apifailure", "from AddDoubtScreen: error posting question")
+            onFailure = {
+                Log.d("apifailure", "from AddDoubtScreen: error posting question")
                     should_show_intermediate_screen = false
                     can_edit_title = true
                     can_edit_question = true
                     can_edit_tags = true
-                }
             }
         )
-    }
-    LaunchedEffect(exp_sig) {
-        if(exp_sig){
-            navController.navigate(AuthScreenRoutes.AUTH.name){
-                popUpTo(MainScreenRoutes.MAIN.name){
-                    inclusive=true
-                }
-            }
-            Toast.makeText(context,"Session Expired,Please Login Again",Toast.LENGTH_LONG).show()
-
-        }
-    }
-}
-@Composable
-fun PostDoubtScreenIntermediate(title:String,question:String,mainViewModel: MainViewModel,onSuccess:(String)->Unit,onFailure:(String)->Unit,modifier:Modifier=Modifier){
-    var should_show_loading by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        mainViewModel.PostUserDoubt(
-            title=title,
-            question=question,
-            onResult = {success,msg->
-                if(success){
-                    onSuccess(msg)
-                }
-                else{
-                    onFailure(msg)
-                }
-                should_show_loading=false
-            }
-        )
-    }
-    Box(modifier=Modifier.fillMaxSize()) {
-        if (should_show_loading) {
-            CircularProgressIndicator(color = colorResource(R.color.electric_green),
-                modifier=Modifier
-                    .align(Alignment.Center))
-        }
-    }
-}
-@Composable
-fun AddDoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
-    var issuccess by remember{ mutableStateOf(false) }
-    var msg by remember{ mutableStateOf("") }
-    var retry_number by remember{mutableStateOf(0)}
-
-    LaunchedEffect(retry_number) {
-        mainViewModel.GetTags(
-            onFinish = {success,new_msg->
-                issuccess=success
-                msg=new_msg
-                Log.d("apisuccess","AddDoubtScreenIntermediate")
-            })
-    }
-    Box(modifier=Modifier.fillMaxSize()){
-        if(!issuccess && msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
-        }
-        else if (!issuccess && msg!=""){
-            Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text="$msg",
-                    fontSize = 24.sp,
-                    fontFamily = FontFamily(Font(R.font.foldable)),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    color=colorResource(R.color.electric_red)
-                )
-                Button(onClick = {
-                    retry_number+=1
-                    issuccess=false
-                    msg=""
-                },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.electric_green))
-                ) {
-                    Text(
-                        text="RETRY",
-                        fontSize = 24.sp,
-                        fontFamily = FontFamily(Font(R.font.foldable)),
-                        fontWeight = FontWeight.Bold,
-                        color=colorResource(R.color.dark_gray)
-                    )
-                }
-            }
-        }
-        else{
-            mainViewModel.cur_question_tags.clear()
-            AddDoubtScreen(mainViewModel=mainViewModel,navController=navController)
-        }
     }
 }

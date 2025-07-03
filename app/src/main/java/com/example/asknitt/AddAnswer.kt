@@ -1,6 +1,8 @@
 package com.example.asknitt
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,10 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,navController: NavController,onValueChanged:(String)->Unit,onClose:()->Unit){
     var should_show_loading_screen by remember { mutableStateOf(false) }
-    val context=LocalContext.current
 
     Box{
         Column(
@@ -83,58 +85,26 @@ fun AddAnswer(question_id:Int,answer_text:String,mainViewModel: MainViewModel,na
         }
     }
     if(should_show_loading_screen){
-        PostAnswerIntermediate(
-            question_id=question_id,
-            answer = answer_text,
-            mainViewModel=mainViewModel,
-            navController = navController,
-            onSuccess= {
+        LoadingScreenWithToast(
+            inside_launched_effect = {onResult->
+                mainViewModel.PostAnswer(
+                    question_id=question_id,
+                    answer=answer_text,
+                    onFinish = {success,msg->
+                        onResult(success,msg)
+                    }
+                )
+            },
+            navController=navController,
+            success_message = "Successfully Posted Answer",
+            onSuccess = {
                 onValueChanged("")
                 should_show_loading_screen=false
                 onClose()
+            },
+            onFailure = {
+                should_show_loading_screen=false
             }
         )
-    }
-}
-@Composable
-fun PostAnswerIntermediate(question_id: Int, answer:String, navController: NavController, mainViewModel: MainViewModel, onSuccess:()->Unit){
-    var issuccess by remember { mutableStateOf(false) }
-    var error_msg by remember { mutableStateOf("") }
-    val context=LocalContext.current
-    LaunchedEffect(Unit) {
-        mainViewModel.PostAnswer(
-            question_id=question_id,
-            answer=answer,
-            onFinish = {success,msg->
-                issuccess=success
-                error_msg=msg
-            }
-        )
-    }
-    if(error_msg== stringResource(R.string.expired_signature)){
-        LaunchedEffect(Unit) {
-            navController.navigate(AuthScreenRoutes.AUTH.name) {
-                popUpTo(MainScreenRoutes.MAIN.name) {
-                    inclusive = true
-                }
-            }
-            Toast.makeText(
-                context,
-                "Session Expired,Please Login Again",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-    Box(modifier=Modifier.fillMaxSize()){
-        if(!issuccess && error_msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
-        }
-        else if (!issuccess && error_msg!=""){
-            Toast.makeText(LocalContext.current,error_msg, Toast.LENGTH_SHORT).show()
-        }
-        else{
-            Toast.makeText(LocalContext.current,"Successfully Posted Answer", Toast.LENGTH_SHORT).show()
-            onSuccess()
-        }
     }
 }

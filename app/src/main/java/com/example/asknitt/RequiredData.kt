@@ -29,26 +29,30 @@ enum class MainScreenRoutes{
                             ADD_DOUBT,
 
                         SEARCH_STUFF,
-                            SEARCH
+                            SEARCH,
+
+                        EXPLORE_USERS_STUFF,
+                            EXPLORE_USERS_HOME,
+                            FRIENDS,
+                            FRIEND_REQUESTS
+
 }
 enum class AuthScreenRoutes{
     AUTH,
         LOGIN,
         SIGN_UP,
 }
-//enum class MainScreensNames(val label:String){
-//    HOME("Home"),
-//    SETTINGS("Settings"),
-//    MY_DOUBTS("My Doubts"),
-//    MY_DOUBTS_LIST("My Doubts List"),
-//    ADD_DOUBT("Add Doubts")
-//}
 enum class LoginType{
     LOGIN,
     SIGN_UP
 }
+enum class FriendRequestStatus {
+    PENDING,
+    ACCEPTED,
+    NOT_SENT
+}
 
-val shared_prefs_filename="main_prefs"
+
 val MAX_TITLE_LENGTH=100
 val MAX_QUESTION_LENGTH=5000
 val MAX_TAG_LENGTH=50
@@ -88,9 +92,14 @@ data class Vote(val add_to_upvote:Int=0,val add_to_downvote:Int=0,val answer_id:
 data class PostAnswerToDoubtItem(val question_id: Int,val answer: String,val answered_username: String)
 @Serializable
 data class Doubt(val posted_username:String,val question_id:Int,val title:String,val question:String,val tags:List<String>,val question_timestamp:String)
-data class UserInfo(val username: String,val people_helped:Int,val questions_asked:Int,val token:String="",val error_msg: String="")
+data class CurrentUserInfo(val username: String,val people_helped:Int,val questions_asked:Int,val joined_on:String,val token:String="",val error_msg: String="")
+data class OtherUserInfo(val username: String, val people_helped:Int, val questions_asked:Int, val joined_on:String, val token:String="", val error_msg: String="",
+                         var friend_status: FriendRequestStatus, var is_current_user_sender_of_request:Boolean)
 data class FilterItem(val idx:Int,val name:String)
+@Serializable
+data class GeneralUser(val username:String)
 
+val privacy_modes=listOf("PRIVATE","FRIENDS ONLY","PUBLIC")
 var JWT_TOKEN=""
 var SHARED_PREFS_FILENAME="ASKNITT"
 val authinterceptor= Interceptor{chain->

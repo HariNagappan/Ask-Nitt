@@ -36,14 +36,37 @@ interface ApiService {
     @GET("recent_doubts")
     fun GetRecentQuestions():Call<List<Doubt>>
 
-    @GET("user_info")
-    fun GetUserInfo(): Call<UserInfo>
+    @GET("current_user_info")
+    fun GetCurrentUserInfo(): Call<CurrentUserInfo>
 
     @GET("questions_filter")
     fun GetDoubtsByFilter(@Query("search_text") search_text:String,
                      @Query("tags") tags:List<String>,
                      @Query("from_date") from_date:String,
                      @Query("to_date") to_date:String):Call<List<Doubt>>
+    @GET("get_users")
+    fun GetUsersByName(@Query("username_search_text") username_search_text:String):Call<List<GeneralUser>>
+
+    @GET("user_info")
+    fun GetOtherUserInfo(@Query("other_username") other_username:String):Call<OtherUserInfo>
+
+    @POST("send_friend_request")
+    fun SendFriendRequest(@Body generalUser: GeneralUser):Call<CheckSuccess>
+
+    @POST("accept_friend_request")
+    fun AcceptFriendRequest(@Body generalUser: GeneralUser):Call<CheckSuccess>
+
+    @POST("decline_friend_request")
+    fun DeclineFriendRequest(@Body generalUser: GeneralUser):Call<CheckSuccess>
+
+    @GET("users_friends")
+    fun GetUsersFriends():Call<List<GeneralUser>>
+
+    @GET("user_friend_request_recieved")
+    fun GetUserFriendRequestsRecieved():Call<List<GeneralUser>>
+
+    @GET("user_friend_request_sent")
+    fun GetUserFriendRequestsSent():Call<List<GeneralUser>>
 
 
 }

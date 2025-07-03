@@ -202,7 +202,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                     Text(
                         text = "ADD AN ANSWER +",
                         color = colorResource(R.color.dark_gray),
-                        fontFamily = FontFamily(Font(R.font.stripes)),
+                        fontFamily = FontFamily(Font(R.font.foldable)),
                         fontSize = 24.sp
                     )
                 }
@@ -386,61 +386,6 @@ fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainVi
                 }
             }
             Toast.makeText(context,"Session Expired,Please Login Again",Toast.LENGTH_LONG).show()
-        }
-    }
-}
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun ViewDoubtInDetailIntermediate(doubt: Doubt,navController: NavController,mainViewModel: MainViewModel){
-    var issuccess by remember{ mutableStateOf(false) }
-    var msg by remember{ mutableStateOf("") }
-    var retry_number by remember{mutableStateOf(0)}
-    LaunchedEffect(retry_number) {
-        mainViewModel.GetAnswersByQuestionId(
-            question_id = doubt.question_id,
-            onFinish = {success,new_msg->
-                issuccess=success
-                msg=new_msg
-                Log.d("apisuccess","executed")
-            })
-    }
-    Box(modifier=Modifier.fillMaxSize()){
-        if(!issuccess && msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
-        }
-        else if (!issuccess && msg!=""){
-            Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text="$msg",
-                    fontSize = 24.sp,
-                    fontFamily = FontFamily(Font(R.font.foldable)),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    color=colorResource(R.color.electric_red)
-                )
-                Button(onClick = {
-                    retry_number+=1
-                    issuccess=false
-                    msg=""
-                },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.electric_green))
-                ) {
-                    Text(
-                        text="RETRY",
-                        fontSize = 24.sp,
-                        fontFamily = FontFamily(Font(R.font.foldable)),
-                        fontWeight = FontWeight.Bold,
-                        color=colorResource(R.color.dark_gray)
-                    )
-                }
-            }
-        }
-        else{
-            ViewDoubtInDetail(
-                doubt = doubt,
-                navController=navController,
-                mainViewModel=mainViewModel
-            )
         }
     }
 }

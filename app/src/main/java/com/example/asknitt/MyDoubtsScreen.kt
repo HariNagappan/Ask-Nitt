@@ -162,58 +162,6 @@ fun DoubtCard(should_show_username:Boolean ,navController: NavController,doubt: 
         }
     }
 }
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun DoubtScreenIntermediate(mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
-    var retrycount by remember { mutableStateOf(0) }
-    var issuccess by remember { mutableStateOf(false) }
-    var error_msg by remember { mutableStateOf("") }
-    LaunchedEffect(retrycount) {
-        mainViewModel.GetDoubtsByUsername(
-            username = mainViewModel.username,
-            onFinish ={success,msg->
-                issuccess=success
-                error_msg=msg
-            }
-        )
-    }
-    Box(modifier=Modifier.fillMaxSize()){
-        if(!issuccess && error_msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
-        }
-        else if (!issuccess && error_msg!=""){
-            Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text="$error_msg",
-                    fontSize = 24.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    color=colorResource(R.color.electric_red)
-                )
-                Button(onClick = {
-                    retrycount+=1
-                    issuccess=false
-                    error_msg=""
-                },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.electric_green))
-                ) {
-                    Text(
-                        text="RETRY",
-                        fontSize = 24.sp,
-                        fontFamily = FontFamily(Font(R.font.foldable)),
-                        fontWeight = FontWeight.Bold,
-                        color=colorResource(R.color.dark_gray)
-                    )
-                }
-            }
-        }
-        else{
-            DoubtsScreen(mainViewModel=mainViewModel,navController=navController)
-        }
-    }
-}
-
-
 @Composable
 fun CustomTagsSuggestionShower(cur_text:String, add_to_lst: MutableList<String>, mainViewModel: MainViewModel, exclude:List<String>, modifier:Modifier=Modifier){
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp),modifier=modifier.horizontalScroll(rememberScrollState())) {

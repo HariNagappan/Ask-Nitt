@@ -58,7 +58,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.asknitt.SearchScreenSearching
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
@@ -141,7 +140,20 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
         }
     }
     if(show_searching_loading){
-        SearchScreenSearching(search_text=search_text,mainViewModel=mainViewModel,onSuccess={show_searching_loading=false})
+        LoadingScreenWithRetry(
+            inside_launched_effect = {onResult->
+                mainViewModel.SearchDoubts(
+                    search_text=search_text,
+                    onFinish = {success,msg->
+                        onResult(success,msg)
+                    })
+            },
+            navController=navController,
+            should_verify_exp_sign = false,
+            to_show_on_success = {
+                show_searching_loading=false
+            }
+        )
     }
 }
 @RequiresApi(Build.VERSION_CODES.O)
@@ -308,108 +320,5 @@ fun TimeStampSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifie
             show_to_date_picker=false
         }
         datePickerDialog.show()
-    }
-}
-@Composable
-@RequiresApi(Build.VERSION_CODES.O)
-fun SearchScreenIntermediate(mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
-    var retrycount by remember { mutableStateOf(0) }
-    var issuccess by remember { mutableStateOf(false) }
-    var error_msg by remember { mutableStateOf("") }
-    LaunchedEffect(retrycount) {
-        mainViewModel.GetTags(
-            onFinish ={success,msg->
-                issuccess=success
-                error_msg=msg
-            }
-        )
-    }
-    Box(modifier=Modifier.fillMaxSize()){
-        if(!issuccess && error_msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
-        }
-        else if (!issuccess && error_msg!=""){
-            Column(
-                modifier=Modifier.align(Alignment.Center).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text="$error_msg",
-                    fontSize = 24.sp,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    color=colorResource(R.color.electric_red)
-                )
-                Button(onClick = {
-                    retrycount+=1
-                    issuccess=false
-                    error_msg=""
-                },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.electric_green))
-                ) {
-                    Text(
-                        text="RETRY",
-                        fontSize = 24.sp,
-                        fontFamily = FontFamily(Font(R.font.foldable)),
-                        fontWeight = FontWeight.Bold,
-                        color=colorResource(R.color.dark_gray)
-                    )
-                }
-            }
-        }
-        else{
-            SearchScreen(mainViewModel=mainViewModel,navController=navController)
-        }
-    }
-}
-@Composable
-fun SearchScreenSearching(search_text:String,mainViewModel: MainViewModel,onSuccess:()->Unit,modifier: Modifier=Modifier){
-    var issuccess by remember { mutableStateOf(false) }
-    var error_msg by remember { mutableStateOf("") }
-    var retry_number by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) {
-
-        mainViewModel.SearchDoubts(search_text=search_text,
-            onFinish = {success,msg->
-                issuccess=success
-                error_msg=msg
-        })
-    }
-
-    Box(modifier=Modifier.fillMaxSize()){
-        if(!issuccess && error_msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
-        }
-        else if (!issuccess && error_msg!=""){
-            Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text="$error_msg",
-                    fontSize = 24.sp,
-                    fontFamily = FontFamily(Font(R.font.foldable)),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    color=colorResource(R.color.electric_red)
-                )
-                Button(onClick = {
-                    retry_number+=1
-                    issuccess=false
-                    error_msg=""
-                },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.electric_green))
-                ) {
-                    Text(
-                        text="RETRY",
-                        fontSize = 24.sp,
-                        fontFamily = FontFamily(Font(R.font.foldable)),
-                        fontWeight = FontWeight.Bold,
-                        color=colorResource(R.color.dark_gray)
-                    )
-                }
-            }
-        }
-        else{
-            Log.d("apisuccess","Got all questions successfully")
-            onSuccess()
-        }
     }
 }

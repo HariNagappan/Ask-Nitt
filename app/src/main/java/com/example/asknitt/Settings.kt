@@ -4,17 +4,30 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuItemColors
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,14 +48,20 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.MainCoroutineDispatcher
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
     val context= LocalContext.current
     var show_loading_screen by remember { mutableStateOf(false) }
+
+    var is_expanded by remember { mutableStateOf(false) }
+    var selected_privacy by remember { mutableStateOf(privacy_modes[0]) }
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black)){
-        Column(modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
+        Column(modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding)),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Text(
                 text="LOGOUT ->",
                 fontSize = 24.sp,
@@ -59,7 +78,6 @@ fun SettingsScreen(mainViewModel: MainViewModel,navController: NavController,mod
         }
         if(show_loading_screen){
             LogoutLoadingScreen(
-                context=context,
                 mainViewModel=mainViewModel,
                 navController=navController
             )
@@ -67,7 +85,7 @@ fun SettingsScreen(mainViewModel: MainViewModel,navController: NavController,mod
     }
 }
 @Composable
-fun LogoutLoadingScreen(context: Context, mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun LogoutLoadingScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
     var success by remember { mutableStateOf(false) }
     var error_msg by remember { mutableStateOf("") }
     val context=LocalContext.current

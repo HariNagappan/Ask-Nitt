@@ -67,17 +67,22 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
                 Text(
                     text = "People Helped: ${mainViewModel.user_questions_helped}",
                     fontSize = 18.sp,
-                    //fontFamily = FontFamily(Font(R.font.headings)),
                     modifier = Modifier.align(Alignment.Start),
                     color = colorResource(R.color.electric_green),
                 )
                 Text(
                     text = "Total Questions Asked: ${mainViewModel.user_questions_asked}",
                     fontSize = 18.sp,
-                    //fontFamily = FontFamily(Font(R.font.headings)),
                     modifier = Modifier.align(Alignment.Start),
                     color = colorResource(R.color.electric_green),
                 )
+                Text(
+                    text = "You joined on: ${mainViewModel.joined_on}",
+                    fontSize = 18.sp,
+                    modifier = Modifier.align(Alignment.Start),
+                    color = colorResource(R.color.electric_green),
+                )
+
             }
             Spacer(modifier=Modifier.height(64.dp))
             Text(
@@ -87,7 +92,7 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
                 modifier=Modifier.align(Alignment.Start),
                 color= colorResource(R.color.electric_gold),
             )
-            Spacer(modifier=Modifier.height(32.dp))
+            Spacer(modifier=Modifier.height(16.dp))
             LazyColumn(
                 modifier=Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -107,7 +112,7 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel,navController: NavContro
     var error_msg2 by remember { mutableStateOf("") }
     val context=LocalContext.current
     LaunchedEffect(retrycount) {
-        mainViewModel.GetUserInfo(
+        mainViewModel.GetCurrentUserInfo(
             onFinish ={success,msg->
                 issuccess1=success
                 error_msg1=msg

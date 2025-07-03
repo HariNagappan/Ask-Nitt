@@ -13,6 +13,7 @@ import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import gen._base._base_java__assetres.srcjar.R.id.info
 import retrofit2.Callback
 import retrofit2.Call
 import retrofit2.Response
@@ -20,16 +21,23 @@ import java.time.LocalDate
 import kotlin.collections.map
 import kotlin.to
 
+@SuppressLint("NewApi")
 class MainViewModel: ViewModel() {
     var username by mutableStateOf("")
         private set
     var password by mutableStateOf("")
         private set
-    var should_auto_login =false
+
+    val all_users:MutableList<GeneralUser> =mutableStateListOf()
+    var other_user_info: OtherUserInfo?=null
 
     var user_doubts: MutableList<Doubt> =mutableStateListOf()
     var recent_doubts: MutableList<Doubt> =mutableStateListOf()
     var filtered_doubts:MutableList<Doubt> =mutableStateListOf()
+    var users_friends:MutableList<GeneralUser> =mutableStateListOf()
+    var user_friend_requests_recieved:MutableList<GeneralUser> =mutableStateListOf()
+    var user_friend_requests_sent:MutableList<GeneralUser> =mutableStateListOf()
+
 
     val tags: MutableList<String> =mutableStateListOf() 
     var cur_question_tags: MutableList<String> =mutableStateListOf()
@@ -41,6 +49,7 @@ class MainViewModel: ViewModel() {
 
     var from_date by mutableStateOf(LocalDate.now())
     var to_date by mutableStateOf(LocalDate.now())
+    var joined_on by mutableStateOf("")
 
 
     fun SetUsername(new_username: String) {
@@ -115,6 +124,92 @@ class MainViewModel: ViewModel() {
         DeleteJWTToken(context=context)
         onFinish(true,"")
     }
+    fun GetCurrentUserInfo(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetCurrentUserInfo()
+        call.enqueue(object:Callback<CurrentUserInfo>{
+            override fun onResponse(call: Call<CurrentUserInfo>, response: Response<CurrentUserInfo>) {
+                if(response.isSuccessful){
+                    val info=response.body()
+                    if(info!=null) {
+                        if (info.error_msg == "" || info.error_msg==null) {
+                            user_questions_asked = info.questions_asked
+                            user_questions_helped = info.people_helped
+                            username = info.username
+                            joined_on=GetUtcInLocalTime(info.joined_on)
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, info.error_msg)
+                        }
+                    }
+                    else{
+                        onFinish(false, "Error, could not fetch info")
+                    }
+                }
+                else{
+                    Log.d("apifailure","this is from GetCurrentUserInfo(), ${response.message()}")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<CurrentUserInfo>, t: Throwable) {
+                Log.d("apifailure","this is from GetCurrentUserInfo(), ${t.message}")
+                onFinish(false,"Error:${t.message}")
+            }
+
+        })
+    }
+    fun GetUsersByName(username_search_text:String, onFinish: (Boolean, String) -> Unit){
+        val call=api.GetUsersByName(username_search_text = username_search_text)
+        call.enqueue(object:Callback<List<GeneralUser>>{
+            override fun onResponse(call: Call<List<GeneralUser>?>, response: Response<List<GeneralUser>?>) {
+                if(response.isSuccessful){
+                    val lst=response.body()
+                    all_users.clear()
+                    if(lst!=null){
+                        all_users.addAll(lst)
+                        onFinish(true,"")
+                    }
+                    else{
+                        onFinish(false,"Error,Could not fetch users data")
+                    }
+                }
+                else{
+                    Log.d("apifailure","this is from GetUsersByName(), ${response.message()}")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<GeneralUser>?>, t: Throwable) {
+                Log.d("apifailure","this is from GetUsersByName(), ${t.message}")
+                onFinish(false,"Error:${t.message}")
+            }
+        })
+    }
+    fun GetOtherUserInfo(other_username:String, onFinish: (Boolean, String) -> Unit){
+        val call=api.GetOtherUserInfo(other_username = other_username)
+        call.enqueue(object:Callback<OtherUserInfo>{
+            override fun onResponse(call: Call<OtherUserInfo?>, response: Response<OtherUserInfo?>) {
+                if(response.isSuccessful){
+                    val info=response.body()
+                    if(info!=null) {
+                        if (info.error_msg == "" || info.error_msg==null) {
+                            other_user_info=info
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, info.error_msg)
+                        }
+                    }
+                    else{
+                        onFinish(false, "Error, could not fetch info")
+                    }
+                }
+            }
+            override fun onFailure(call: Call<OtherUserInfo?>, t: Throwable) {
+                Log.d("apifailure","this is from GetOtherOtherUserInfo(), ${t.message}")
+                onFinish(false,"Error:${t.message}")
+            }
+        })
+    }
 
     fun GetDoubtsByUsername(username:String, onFinish: (Boolean, String) -> Unit){
         val cal=api.GetDoubts(username)
@@ -141,7 +236,7 @@ class MainViewModel: ViewModel() {
             }
         })
     }
-    fun PostUserDoubt(title:String, question:String,onResult:(Boolean,String) ->Unit):Boolean{
+    fun PostUserDoubt(title:String, question:String,onFinish: (Boolean, String) -> Unit):Boolean{
         val call=api.PostDoubt(PostDoubtItem(username=username, title = title,question=question,tags=cur_question_tags))
         Log.d("general","from PostUerDoubt:tags:$tags")
         var success=false
@@ -151,11 +246,11 @@ class MainViewModel: ViewModel() {
                 response: Response<CheckSuccess?>
             ) {
                 if(response.isSuccessful){
-                    onResult(true,"Successfully Posted Question")
+                    onFinish(true,"Successfully Posted Question")
                     ClearCurrentQuestionTags()
                 }
                 else{
-                    onResult(false,"Error Posting Question:${response.message()}")
+                    onFinish(false,"Error Posting Question:${response.message()}")
                 }
             }
 
@@ -163,11 +258,74 @@ class MainViewModel: ViewModel() {
                 call: Call<CheckSuccess?>,
                 t: Throwable
             ) {
-                onResult(false,"Server error, please try again later")
+                onFinish(false,"Server error, please try again later")
             }
         })
         return success
     }
+    fun GetRecentDoubts(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetRecentQuestions()
+        call.enqueue(object : Callback<List<Doubt>>{
+            override fun onResponse(call: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
+                if(response.isSuccessful){
+                    val lst=response.body()
+                    recent_doubts.clear()
+                    if(lst!=null) {
+                        recent_doubts.addAll(lst)
+
+                    }
+                    Log.d("apisuccess","successfully retrieved recent_doubts:.$recent_doubts")
+                    onFinish(true,"")
+                }
+                else{
+                    Log.d("apifailure","this is from GetResponse(), ${response.message()}")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<Doubt>?>, t: Throwable) {
+                Log.d("apifailure","this is from GetResponse(), ${t.message}")
+                onFinish(false,"Error:${t.message}")
+            }
+
+        })
+    }
+    fun SearchDoubts(search_text:String, onFinish: (Boolean, String) -> Unit){
+        val call=api.GetDoubtsByFilter(
+            search_text=search_text,
+            tags=search_question_tags,
+            from_date=GetLocalInUTC(from_date.toString(), start_of_day = true),
+            to_date=GetLocalInUTC(to_date.toString(), start_of_day = true
+            ))
+        call.enqueue(object:Callback<List<Doubt>>{
+            override fun onResponse(call: Call<List<Doubt>>, response: Response<List<Doubt>>) {
+                if(response.isSuccessful){
+                    val lst=response.body()
+                    if(lst!=null){
+                        filtered_doubts.clear()
+                        filtered_doubts.addAll(lst)
+                        onFinish(true,"")
+                        Log.d("apisuccess","Successfully searched doubts:$filtered_doubts")
+                    }
+                    else{
+                        onFinish(false,"Could not get data,Please try again later")
+                        Log.d("apifailure","this is from SearchDoubts(), ${response.message()}")
+                    }
+                }
+                else{
+                    onFinish(false,response.message())
+                    Log.d("apifailure","this is from SearchDoubts(), ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<Doubt>>, t: Throwable) {
+                onFinish(false,"${t.message}")
+                Log.d("apifailure","this is from SearchDoubts(), ${t.message}")
+            }
+        })
+    }
+
+
     fun ClearCurrentQuestionTags(){
         cur_question_tags.clear()
     }
@@ -249,6 +407,7 @@ class MainViewModel: ViewModel() {
             }
         })
     }
+
     fun PostAnswer(question_id: Int,answer: String,onFinish: (Boolean, String) -> Unit){
         val call=api.PostAnswer(PostAnswerToDoubtItem(question_id=question_id,answer=answer, answered_username = username))
         call.enqueue(object:Callback<CheckSuccess>{
@@ -288,8 +447,12 @@ class MainViewModel: ViewModel() {
                     cur_question_answers.clear()
                     if(lst!=null) {
                         cur_question_answers.addAll(lst)
+                        onFinish(true,"success")
                     }
-                    onFinish(true,"success")
+                    else{
+                        onFinish(false,"could not get questions")
+                    }
+
                     Log.d("apisuccess","this is from GetAnswers(), successfully gotten answers")
 
                 }
@@ -306,99 +469,167 @@ class MainViewModel: ViewModel() {
 
         })
     }
-    fun GetRecentDoubts(onFinish: (Boolean, String) -> Unit){
-        val call=api.GetRecentQuestions()
-        call.enqueue(object : Callback<List<Doubt>>{
-            override fun onResponse(call: Call<List<Doubt>?>, response: Response<List<Doubt>?>) {
+
+    fun GetUserFriends(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetUsersFriends()
+        call.enqueue(object:Callback<List<GeneralUser>>{
+            override fun onResponse(call: Call<List<GeneralUser>?>, response: Response<List<GeneralUser>?>) {
                 if(response.isSuccessful){
                     val lst=response.body()
-                    recent_doubts.clear()
+                    users_friends.clear()
                     if(lst!=null) {
-                        recent_doubts.addAll(lst)
-
+                        users_friends.addAll(lst)
+                        onFinish(true,"success")
                     }
-                    Log.d("apisuccess","successfully retrieved recent_doubts:.$recent_doubts")
-                    onFinish(true,"")
+                    else{
+                        onFinish(false,"Could not get friends")
+                    }
+                    Log.d("apisuccess","this is from GetUserFriends(), successfully gotten friends")
+
                 }
                 else{
-                    Log.d("apifailure","this is from GetResponse(), ${response.message()}")
+                    Log.d("apifailure","this is from GetUserFriends(), message:response.body is empty")
                     onFinish(false,"Error:${response.message()}")
                 }
             }
 
-            override fun onFailure(call: Call<List<Doubt>?>, t: Throwable) {
-                Log.d("apifailure","this is from GetResponse(), ${t.message}")
-                onFinish(false,"Error:${t.message}")
+            override fun onFailure(call: Call<List<GeneralUser>?>, t: Throwable) {
+                onFinish(false,"${t.message}")
             }
-
         })
     }
-    fun GetUserInfo(onFinish: (Boolean, String) -> Unit){
-        val call=api.GetUserInfo()
-        call.enqueue(object:Callback<UserInfo>{
-            override fun onResponse(call: Call<UserInfo>, response: Response<UserInfo>) {
+    fun GetUserRecievedFriendRequests(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetUserFriendRequestsRecieved()
+        call.enqueue(object:Callback<List<GeneralUser>>{
+            override fun onResponse(call: Call<List<GeneralUser>?>, response: Response<List<GeneralUser>?>) {
                 if(response.isSuccessful){
-                    val info=response.body()
-                    if(info!=null) {
-                        if (info.error_msg == "" || info.error_msg==null) {
-                            user_questions_asked = info.questions_asked
-                            user_questions_helped = info.people_helped
-                            username = info.username
+                    val lst=response.body()
+                    user_friend_requests_recieved.clear()
+                    if(lst!=null) {
+                        user_friend_requests_recieved.addAll(lst)
+                        onFinish(true,"success")
+                    }
+                    else{
+                        onFinish(false,"Could not get requests")
+                    }
+                    Log.d("apisuccess","this is from GetUserRecievedFriendRequests(), successfully gotten requests")
+
+                }
+                else{
+                    Log.d("apifailure","this is from GetUserRecievedFriendRequests(), message:response.body is empty")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<GeneralUser>?>, t: Throwable) {
+                onFinish(false,"Error:${t.message}")
+            }
+        })
+    }
+    fun GetUserSentFriendRequests(onFinish: (Boolean, String) -> Unit){
+        val call=api.GetUserFriendRequestsSent()
+        call.enqueue(object:Callback<List<GeneralUser>>{
+            override fun onResponse(call: Call<List<GeneralUser>?>,response: Response<List<GeneralUser>?>) {
+                if(response.isSuccessful){
+                    val lst=response.body()
+                    user_friend_requests_sent.clear()
+                    if(lst!=null) {
+                        user_friend_requests_sent.addAll(lst)
+                        onFinish(true,"success")
+                    }
+                    else{
+                        onFinish(false,"Could not get requests")
+                    }
+                    Log.d("apisuccess","this is from GetUserSentFriendRequests(), successfully gotten requests")
+                }
+                else{
+                    Log.d("apifailure","this is from GetUserSentFriendRequests(), message:response.body is empty")
+                    onFinish(false,"Error:${response.message()}")
+                }
+            }
+            override fun onFailure(call: Call<List<GeneralUser>?>, t: Throwable) {
+                onFinish(false,"Error:${t.message}")
+            }
+        })
+    }
+    fun SendFriendRequest(other_username: String,onFinish: (Boolean, String) -> Unit){
+        val call=api.SendFriendRequest(GeneralUser(other_username))
+        call.enqueue(object:Callback<CheckSuccess>{
+            override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
+                if (response.isSuccessful) {
+                    val checkSuccess = response.body()
+                    if (checkSuccess != null) {
+                        if (checkSuccess.error_msg == "" || checkSuccess.error_msg == null) {
                             onFinish(true, "")
                         } else {
-                            onFinish(false, info.error_msg)
+                            onFinish(false, checkSuccess.error_msg)
                         }
-                    }
-                    else{
-                        onFinish(false, "Error, could not fetch info")
-                    }
-                }
-                else{
-                    Log.d("apifailure","this is from GetResponse(), ${response.message()}")
-                    onFinish(false,"Error:${response.message()}")
-                }
-            }
-
-            override fun onFailure(call: Call<UserInfo>, t: Throwable) {
-                Log.d("apifailure","this is from GetUserInfo(), ${t.message}")
-                onFinish(false,"Error:${t.message}")
-            }
-
-        })
-    }
-    @SuppressLint("NewApi")
-    fun SearchDoubts(search_text:String, onFinish: (Boolean, String) -> Unit){
-        val call=api.GetDoubtsByFilter(
-            search_text=search_text,
-            tags=search_question_tags,
-            from_date=GetLocalInUTC(from_date.toString(), start_of_day = true),
-            to_date=GetLocalInUTC(to_date.toString(), start_of_day = true
-            ))
-        call.enqueue(object:Callback<List<Doubt>>{
-            override fun onResponse(call: Call<List<Doubt>>, response: Response<List<Doubt>>) {
-                if(response.isSuccessful){
-                    val lst=response.body()
-                    if(lst!=null){
-                        filtered_doubts.clear()
-                        filtered_doubts.addAll(lst)
-                        onFinish(true,"")
-                        Log.d("apisuccess","Successfully searched doubts:$filtered_doubts")
-                    }
-                    else{
-                        onFinish(false,"Could not get data,Please try again later")
-                        Log.d("apifailure","this is from SearchDoubts(), ${response.message()}")
+                    } else {
+                        onFinish(false, "Error, could not fetch checkSuccess")
                     }
                 }
                 else{
                     onFinish(false,response.message())
-                    Log.d("apifailure","this is from SearchDoubts(), ${response.message()}")
+                }
+            }
+            override fun onFailure(call: Call<CheckSuccess?>, t: Throwable) {
+                Log.d("apifailure", "From SendFriendRequest:${t.message}")
+                onFinish(false,"${t.message}")
+            }
+        })
+    }
+    fun AcceptFriendRequest(other_username: String,onFinish: (Boolean, String) -> Unit){
+        val call=api.AcceptFriendRequest(GeneralUser(username=other_username))
+        call.enqueue(object:Callback<CheckSuccess>{
+            override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
+                if (response.isSuccessful) {
+                    val checkSuccess = response.body()
+                    if (checkSuccess != null) {
+                        if (checkSuccess.error_msg == "" || checkSuccess.error_msg == null) {
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, checkSuccess.error_msg)
+                        }
+                    } else {
+                        onFinish(false, "Error, could not fetch checkSuccess")
+                    }
+                }
+                else{
+                    onFinish(false,response.message())
+                }
+            }
+            override fun onFailure(call: Call<CheckSuccess?>,t: Throwable) {
+                Log.d("apifailure", "From AcceptFriendRequest:${t.message}")
+                onFinish(false,"${t.message}")
+            }
+        })
+    }
+    fun DeclineFriendRequest(other_username: String,onFinish: (Boolean, String) -> Unit){
+        val call=api.DeclineFriendRequest(GeneralUser(username=other_username))
+        call.enqueue(object : Callback<CheckSuccess>{
+            override fun onResponse(call: Call<CheckSuccess?>, response: Response<CheckSuccess?>) {
+                if (response.isSuccessful) {
+                    val checkSuccess = response.body()
+                    if (checkSuccess != null) {
+                        if (checkSuccess.error_msg == "" || checkSuccess.error_msg == null) {
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, checkSuccess.error_msg)
+                        }
+                    } else {
+                        onFinish(false, "Error, could not fetch checkSuccess")
+                    }
+                }
+                else{
+                    onFinish(false,response.message())
                 }
             }
 
-            override fun onFailure(call: Call<List<Doubt>>, t: Throwable) {
+            override fun onFailure(call: Call<CheckSuccess?>, t: Throwable) {
+                Log.d("apifailure", "From DeclineFriendRequest:${t.message}")
                 onFinish(false,"${t.message}")
-                Log.d("apifailure","this is from SearchDoubts(), ${t.message}")
             }
+
         })
     }
 

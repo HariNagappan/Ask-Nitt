@@ -22,7 +22,6 @@ fun SearchTextField(cur_text: String,placeholder_text:String,singleLine: Boolean
             fontSize = 16.sp
         ),
         singleLine = singleLine,
-        modifier = modifier,
         decorationBox = {innerTextField->
             if(cur_text.isEmpty()){
                 Text(
@@ -32,7 +31,8 @@ fun SearchTextField(cur_text: String,placeholder_text:String,singleLine: Boolean
                 )
             }
             innerTextField()
-        }
+        },
+        modifier = modifier,
     )
 }
 @Composable
