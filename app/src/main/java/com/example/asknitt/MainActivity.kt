@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.net.http.SslCertificate.restoreState
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,7 +102,10 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
         NavHost(
             navController = navController,
             startDestination = if(JWT_TOKEN=="") AuthScreenRoutes.AUTH.name else MainScreenRoutes.MAIN.name,
-            modifier = Modifier.fillMaxSize().padding(bottom = it.calculateBottomPadding())
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = it.calculateBottomPadding())
+                .background(colorResource(R.color.black))
         ) {//.then(modifier)
             navigation(
                 startDestination = AuthScreenRoutes.LOGIN.name,
@@ -136,12 +141,35 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                     route = MainScreenRoutes.MY_DOUBTS.name
                 ) {
                     composable(MainScreenRoutes.MY_DOUBTS_LIST.name) {
-                        DoubtScreenIntermediate(mainViewModel = mainViewModel, navController = navController)
+                        LoadingScreenWithRetry(
+                            inside_launched_effect = {onResult->
+                                mainViewModel.GetDoubtsByUsername(
+                                    username = mainViewModel.username,
+                                    onFinish ={success,msg->
+                                        onResult(success,msg)
+                                    }
+                                )
+                            },
+                            navController=navController,
+                            should_verify_exp_sign = false,
+                            to_show_on_success = {
+                                DoubtsScreen(mainViewModel=mainViewModel,navController=navController)
+                            }
+                        )
                     }
                     composable(MainScreenRoutes.ADD_DOUBT.name) {
-                        AddDoubtScreenIntermediate(
-                            mainViewModel = mainViewModel,
-                            navController = navController
+                        LoadingScreenWithRetry(
+                            inside_launched_effect = {onResult->
+                                mainViewModel.GetTags(
+                                    onFinish = {success,new_msg->
+                                        onResult(success,new_msg)
+                                    })
+                            },
+                            should_verify_exp_sign = true,
+                            navController = navController,
+                            to_show_on_success = {
+                                AddDoubtScreen(mainViewModel=mainViewModel,navController=navController)
+                            }
                         )
                     }
 //                    composable<Doubt> {
@@ -154,14 +182,101 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                     route = MainScreenRoutes.SEARCH_STUFF.name
                 ) {
                     composable(MainScreenRoutes.SEARCH.name) {
-                        SearchScreenIntermediate(navController=navController,mainViewModel=mainViewModel)
+                        LoadingScreenWithRetry(
+                            inside_launched_effect = {onResult->
+                                mainViewModel.GetTags(
+                                    onFinish ={success,msg->
+                                        onResult(success,msg)
+                                    }
+                                )
+                            },
+                            should_verify_exp_sign = false,
+                            navController = navController,
+                            to_show_on_success = {
+                                SearchScreen(mainViewModel=mainViewModel,navController=navController)
+                            }
+                        )
+                    }
+                }
+                navigation(
+                    startDestination = MainScreenRoutes.EXPLORE_USERS_HOME.name,
+                    route= MainScreenRoutes.EXPLORE_USERS_STUFF.name) {
+                    composable(MainScreenRoutes.EXPLORE_USERS_HOME.name) {
+                        LoadingScreenWithRetry(
+                            inside_launched_effect = {onResult->
+                                mainViewModel.GetUsersByName(
+                                    username_search_text = "",
+                                    onFinish = {success,error_msg->
+                                        onResult(success,error_msg)
+                                    })
+                            },
+                            should_verify_exp_sign = true,
+                            navController = navController,
+                            to_show_on_success = {
+                                ExploreUsersHome(mainViewModel=mainViewModel,navController=navController)
+                            }
+                        )
+                    }
+                    composable(MainScreenRoutes.FRIENDS.name) {
+                        LoadingScreenWithRetry(
+                            inside_launched_effect = {onResult->
+                                mainViewModel.GetUserFriends(
+                                    onFinish = {success,msg->
+                                        onResult(success,msg)
+                                    }
+                                )
+                            },
+                            navController=navController,
+                            should_verify_exp_sign = true,
+                            to_show_on_success = {
+                                Friends(mainViewModel=mainViewModel,navController=navController)
+                            }
+                        )
+                    }
+                    composable(MainScreenRoutes.FRIEND_REQUESTS.name) {
+                        FriendRequests(mainViewModel=mainViewModel,navController=navController)
                     }
                 }
             }
 
             composable<Doubt> {
                 val doubt=it.toRoute<Doubt>()
-                ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
+                LoadingScreenWithRetry(
+                    inside_launched_effect = {onResult->
+                        mainViewModel.GetAnswersByQuestionId(
+                            question_id = doubt.question_id,
+                            onFinish = {success,new_msg->
+                                onResult(success,new_msg)
+                            })
+                    },
+                    should_verify_exp_sign = false,
+                    navController = navController,
+                    to_show_on_success = {
+                        ViewDoubtInDetail(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
+                    }
+                )
+            }
+            composable<GeneralUser>{
+                val generalUser=it.toRoute<GeneralUser>()
+                LoadingScreenWithRetry(
+                    inside_launched_effect = {onResult->
+                        mainViewModel.GetOtherUserInfo(
+                            other_username = generalUser.username,
+                            onFinish = {success,msg->
+                                onResult(success,msg)
+                            }
+                        )
+                    },
+                    should_verify_exp_sign = true,
+                    navController = navController,
+                    to_show_on_success = {
+                        Log.d("general","mainviewmodel.other_user:${mainViewModel.other_user_info}")
+                        ViewUserInDetail(
+                            mainViewModel=mainViewModel,
+                            navController=navController)
+                    }
+                )
+
             }
         }
     }
@@ -233,10 +348,16 @@ fun GetBottomBarEntries():List<AllScreensNamesItem>{
             icon = Icons.Default.Search
         ),
         AllScreensNamesItem(
+            route=MainScreenRoutes.EXPLORE_USERS_STUFF.name,
+            label="Explore",
+            icon=Icons.Default.People
+        ),
+        AllScreensNamesItem(
             route = MainScreenRoutes.SETTINGS.name,
             label = "Settings",
             icon = Icons.Default.Settings
         )
+
     )
 }
 
