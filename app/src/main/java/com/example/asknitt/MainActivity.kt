@@ -361,14 +361,20 @@ fun GetBottomBarEntries():List<AllScreensNamesItem>{
     )
 }
 
-fun Get_JWT_Token_From_Preferences(context: Context){
-    val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-    val prefs = EncryptedSharedPreferences.create(
-        SHARED_PREFS_FILENAME_ENCRYPTED,
-        masterKeyAlias,
-        context,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
-    JWT_TOKEN=prefs.getString("JWTToken","")?:""
+fun Get_JWT_Token_From_Preferences(context: Context) {
+    try {
+        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        val prefs = EncryptedSharedPreferences.create(
+            SHARED_PREFS_FILENAME_ENCRYPTED,
+            masterKeyAlias,
+            context,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        JWT_TOKEN = prefs.getString("JWTToken", "") ?: ""
+    } catch (e: Exception) {
+        Log.e("general", "Failed to read token. Deleting prefs.", e)
+        context.deleteSharedPreferences(SHARED_PREFS_FILENAME_ENCRYPTED)
+        JWT_TOKEN = ""
+    }
 }
