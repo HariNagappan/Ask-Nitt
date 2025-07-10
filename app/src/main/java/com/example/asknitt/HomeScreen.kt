@@ -112,14 +112,11 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel,navController: NavContro
     var error_msg2 by remember { mutableStateOf("") }
     val context=LocalContext.current
     LaunchedEffect(retrycount) {
-        mainViewModel.GetCurrentUserInfo(
-            onFinish ={success,msg->
-                issuccess1=success
-                error_msg1=msg
-            }
-        )
-        mainViewModel.GetRecentDoubts(
-            onFinish ={success,msg->
+        mainViewModel.GetHomeScreenStuff(onFinishUserUnfo ={success,msg->
+            issuccess1=success
+            error_msg1=msg
+        },
+            onFinishRecentDoubts ={success,msg->
                 issuccess2=success
                 error_msg2=msg
             }

@@ -1,7 +1,12 @@
 package com.example.asknitt
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,10 +29,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,9 +67,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 @Composable
 fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+    val context=LocalContext.current
+
+
     var title_text by remember{mutableStateOf("")}
     var question_text by remember { mutableStateOf("") }
     var tag_search_text by remember { mutableStateOf("") }
@@ -77,19 +92,29 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
     var can_edit_question by remember { mutableStateOf(true) }
     var can_edit_tags by remember { mutableStateOf(true) }
 
-    var exp_sig by remember { mutableStateOf(false) }
-    val context=LocalContext.current
+    val filepicker= rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ){uris:List<Uri>->
+        uris.forEach{uri->
+            mainViewModel.doubt_files.add(UploadFileItem(multipartBody = UriToMultipart(partName="files",context=context,uri=uri),filename=GetFileNameFromUri(context=context,uri=uri)))
+        }
+    }
     LaunchedEffect(question_text) {
         scollState.animateScrollTo(scollState.maxValue)
     }
     Box(modifier=Modifier
         .fillMaxSize()
-        .background(color=Color.Black)){
+        .background(color = Color.Black)){
         Column(verticalArrangement = Arrangement.spacedBy(32.dp),
             modifier=Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(
+                    top = dimensionResource(R.dimen.from_top_padding),
+                    bottom = dimensionResource(R.dimen.large_padding),
+                    start = dimensionResource(R.dimen.large_padding),
+                    end = dimensionResource(R.dimen.large_padding)
+                )
                 .imePadding()
                 .verticalScroll(scollState)
         ) {
@@ -101,7 +126,11 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                     colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent),
                     modifier= Modifier
                         .size(40.dp)
-                        .border(width = 2.dp, color = colorResource(R.color.electric_green), shape = CircleShape)
+                        .border(
+                            width = 2.dp,
+                            color = colorResource(R.color.electric_green),
+                            shape = CircleShape
+                        )
                         .clip(CircleShape)) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
@@ -204,7 +233,9 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                         should_show_search_field=!should_show_search_field
                     },
                         enabled = can_edit_tags,
-                        modifier=Modifier.size(24.dp).zIndex(2f)
+                        modifier=Modifier
+                            .size(24.dp)
+                            .zIndex(2f)
                     ) {
                         Icon(
                             imageVector = if(!should_show_search_field) Icons.Default.Search else Icons.Default.SearchOff,
@@ -223,7 +254,44 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                 }
             }
             CustomTagsShowerRemovable(from_lst = mainViewModel.cur_question_tags)
-
+            Column(
+                modifier=Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Upload File",
+                        fontSize = 16.sp,
+                        color = colorResource(R.color.electric_blue),
+                        fontFamily = FontFamily(Font(R.font.foldable)),
+                        textAlign = TextAlign.Center,
+                    )
+                    IconButton(
+                        onClick = {
+                            filepicker.launch("*/*")
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Upload,
+                            contentDescription = "Upload File",
+                            tint=colorResource(R.color.electric_green)
+                        )
+                    }
+                }
+                Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    mainViewModel.doubt_files.forEach { doubt_file->
+                        FileUploadCard(
+                            fileItem = doubt_file,
+                            onDeleteClick = {
+                                mainViewModel.doubt_files.remove(doubt_file)
+                            }
+                        )
+                    }
+                }
+            }
             Row(modifier=Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center){
                 Button(onClick = {
                     if(title_text.trim().isEmpty() && question_text.trim().isEmpty()){
@@ -313,4 +381,59 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
             }
         )
     }
+}
+@Composable
+fun FileUploadCard(fileItem: UploadFileItem,onDeleteClick:()->Unit,modifier: Modifier=Modifier){
+    Card(
+        modifier=Modifier.fillMaxWidth(),
+        colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray))
+    ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier=Modifier
+            .fillMaxWidth()
+            .padding(dimensionResource(R.dimen.med_padding))){
+            Text(
+                text=fileItem.filename,
+                color=colorResource(R.color.white),
+                fontSize=16.sp,
+            )
+            Spacer(modifier=Modifier.weight(1f))
+            IconButton(onClick = {
+                onDeleteClick()
+            },
+                colors = IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_red))) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Delete File",
+                    tint=colorResource(R.color.white)
+                )
+            }
+        }
+    }
+}
+fun GetFileNameFromUri(context: Context, uri: Uri): String {
+    var name: String? = null
+    if (uri.scheme == "content") {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    name = it.getString(nameIndex)
+                }
+            }
+        }
+    }
+    if (name == null) {
+        name = uri.path?.substringAfterLast('/')
+    }
+    return name?:"Unknown File"
+}
+fun UriToMultipart(partName: String, context: Context, uri: Uri): MultipartBody.Part {
+    val fileName = GetFileNameFromUri(context, uri)
+    val inputStream = context.contentResolver.openInputStream(uri)
+    val bytes = inputStream?.readBytes() ?: byteArrayOf()
+    val requestBody = bytes.toRequestBody("*/*".toMediaTypeOrNull())
+    return MultipartBody.Part.createFormData(partName, fileName, requestBody)
 }

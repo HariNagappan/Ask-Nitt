@@ -71,7 +71,7 @@ import java.util.Calendar
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modifier:Modifier=Modifier){
-    var search_text by remember{ mutableStateOf("") }
+    var search_text by remember{ mutableStateOf(mainViewModel.search_question_text) }
     var show_searching_loading by remember { mutableStateOf(false) }
     var should_show_filter_box by remember { mutableStateOf(false) }
     Box(modifier=Modifier.fillMaxSize()){
@@ -81,7 +81,6 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
                 .align(Alignment.Center)
                 .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding)),
             verticalArrangement = Arrangement.spacedBy(16.dp)
-
         ) {
             Row(modifier=Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {
@@ -98,6 +97,7 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
                     singleLine = true,
                     onValueChanged = { new_text ->
                         search_text = new_text
+                        mainViewModel.search_question_text=new_text
                     },
                     placeholder_text = "Search Questions Here",
                     modifier = Modifier

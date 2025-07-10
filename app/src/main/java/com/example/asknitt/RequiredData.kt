@@ -3,10 +3,12 @@ package com.example.asknitt
 import android.R.attr.data
 import android.R.attr.level
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
 import okhttp3.Interceptor
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -84,6 +86,12 @@ fun GetLocalInUTC(local: String,start_of_day:Boolean): String {
 
 }
 
+sealed class UiState{
+    object Loading: UiState()
+    object Success:UiState()
+    data class Failure(val msg:String): UiState()
+}
+
 data class User(val username:String, val password:String)
 data class CheckSuccess(val success: Boolean,val token:String?="",val error_msg:String?="")
 data class AllScreensNamesItem(val route:String,val label:String,val icon: ImageVector)
@@ -103,14 +111,15 @@ data class FilterItem(val idx:Int,val name:String)
 @Serializable
 data class GeneralUser(val username:String)
 data class MarkQuestionSolvedItem(val question_id:Int)
+data class UploadFileItem(val multipartBody: MultipartBody.Part,val filename:String)
 
 val privacy_modes=listOf("PRIVATE","FRIENDS ONLY","PUBLIC")
 var JWT_TOKEN=""
 var SHARED_PREFS_FILENAME_ENCRYPTED="ASKNITT"
 var SHARED_PREFS_FILENAME_NORMAL="ASKNITT_NORMAL"
 
-val authinterceptor= Interceptor{chain->
-    val request = chain.request().newBuilder()//newBuilder=modifiable version
+val authinterceptor = Interceptor { chain ->
+    val request = chain.request().newBuilder()
         .addHeader("Authorization", JWT_TOKEN)
         .build()
     chain.proceed(request)
@@ -122,7 +131,7 @@ val client= OkHttpClient.Builder()
     .build()
 
 val retrofit= Retrofit.Builder()
-    .baseUrl("http://192.168.29.195:5000")
+    .baseUrl("http://192.168.1.36:5000")
     .client(client)
     .addConverterFactory(GsonConverterFactory.create())
     .build()
