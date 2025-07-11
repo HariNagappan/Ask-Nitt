@@ -1,7 +1,6 @@
 package com.example.asknitt
 
 import okhttp3.MultipartBody
-import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -44,11 +43,12 @@ interface ApiService {
     suspend fun GetCurrentUserInfo(): Response<CurrentUserInfo>
 
     @GET("questions_filter")
-    suspend fun GetDoubtsByFilter(@Query("search_text") search_text:String,
-                     @Query("tags") tags:List<String>,
-                     @Query("from_date") from_date:String,
-                     @Query("to_date") to_date:String,
-                          @Query("status") status: String):Response<List<Doubt>>
+    suspend fun GetDoubtsByFilter(@Query("search_text") search_text: String,
+                                  @Query("tags") tags: MutableList<String>?,
+                                  @Query("from_date") from_date: String,
+                                  @Query("to_date") to_date: String,
+                                  @Query("status") status: String
+    ):Response<List<Doubt>>
     @GET("get_users")
     suspend fun GetUsersByName(@Query("username_search_text") username_search_text:String):Response<List<GeneralUser>>
 
@@ -78,6 +78,10 @@ interface ApiService {
 
     @POST("upload_files_for_doubt")
     @Multipart
-    suspend fun UploadFilesForDoubt(@Part files:List<MultipartBody.Part>,@Part question_id: Int):Response<CheckSuccess>
+    suspend fun UploadFilesForDoubt(@Part files:List<MultipartBody.Part>):Response<CheckSuccess>
+
+    @POST("upload_files_for_answer")
+    @Multipart
+    suspend fun UploadFilesForAnswer(@Part files:List<MultipartBody.Part>):Response<CheckSuccess>
 
 }

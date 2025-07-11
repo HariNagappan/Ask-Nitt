@@ -39,6 +39,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +61,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -131,15 +133,29 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
             AnimatedVisibility(should_show_filter_box)  {
                 FilterBox(mainViewModel=mainViewModel)
             }
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier=Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())) {
-                mainViewModel.filtered_doubts.forEach { doubt ->
-                    DoubtCard(
-                        navController = navController,
-                        doubt=doubt
+            if(mainViewModel.filtered_doubts.isEmpty()){
+                Box(modifier=Modifier.fillMaxSize()){
+                    Text(
+                        text="No Questions of this Type",
+                        color=colorResource(R.color.white),
+                        fontSize = 24.sp,
+                        fontFamily = FontFamily(Font(R.font.foldable)),
+                        modifier= Modifier
+                            .align(Alignment.Center)
                     )
+                }
+            }
+            else{
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier=Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())) {
+                    mainViewModel.filtered_doubts.forEach { doubt ->
+                        DoubtCard(
+                            navController = navController,
+                            doubt=doubt
+                        )
+                    }
                 }
             }
         }
@@ -215,56 +231,67 @@ fun TagsSelectionTab(mainViewModel: MainViewModel,modifier: Modifier=Modifier){
     var tag_search_text by remember { mutableStateOf("") }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier=Modifier.fillMaxWidth()
     ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier=Modifier.fillMaxWidth()) {
-            SearchTextField(
-                cur_text = tag_search_text,
-                singleLine = true,
-                onValueChanged = { new_text ->
-                    if (new_text.length <= MAX_TAG_LENGTH) {
-                        tag_search_text = new_text
-                    }
-                },
-                placeholder_text = "Search for Tags",
-                modifier = Modifier
-                    .height(36.dp)
-                    .background(
-                        colorResource(R.color.dark_gray),
-                        shape = RoundedCornerShape(32.dp)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = colorResource(R.color.electric_pink),
-                        shape = RoundedCornerShape(32.dp)
-                    )
-                    .padding(8.dp)
-            )
-            AnimatedVisibility(mainViewModel.search_question_tags.isNotEmpty()) {
-                IconButton(
-                    onClick = {
-                        mainViewModel.search_question_tags.clear()
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SearchTextField(
+                    cur_text = tag_search_text,
+                    singleLine = true,
+                    onValueChanged = { new_text ->
+                        if (new_text.length <= MAX_TAG_LENGTH) {
+                            tag_search_text = new_text
+                        }
                     },
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_red))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete All Tags",
-                        tint = colorResource(R.color.white)
-                    )
+                    placeholder_text = "Search for Tags",
+                    modifier = Modifier
+                        .height(36.dp)
+                        .background(
+                            colorResource(R.color.dark_gray),
+                            shape = RoundedCornerShape(32.dp)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = colorResource(R.color.electric_pink),
+                            shape = RoundedCornerShape(32.dp)
+                        )
+                        .padding(8.dp)
+                )
+                AnimatedVisibility(mainViewModel.search_question_tags.isNotEmpty()) {
+                    IconButton(
+                        onClick = {
+                            mainViewModel.search_question_tags.clear()
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = colorResource(
+                                R.color.electric_red
+                            )
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete All Tags",
+                            tint = colorResource(R.color.white)
+                        )
+                    }
                 }
             }
+            CustomTagsSuggestionShower(
+                cur_text = tag_search_text,
+                add_to_lst = mainViewModel.search_question_tags,
+                mainViewModel = mainViewModel,
+                exclude = mainViewModel.search_question_tags
+            )
+            CustomTagsShowerRemovable(from_lst = mainViewModel.search_question_tags)
         }
-        CustomTagsSuggestionShower(
-            cur_text = tag_search_text,
-            add_to_lst = mainViewModel.search_question_tags,
-            mainViewModel = mainViewModel,
-            exclude = mainViewModel.search_question_tags
-        )
-        CustomTagsShowerRemovable(from_lst = mainViewModel.search_question_tags)
     }
 }
 
@@ -278,37 +305,48 @@ fun TimeStampSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifie
     val calender by remember {mutableStateOf(Calendar.getInstance())}
 
     val context= LocalContext.current
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically){
-            Text(
-                text="From: $from_date",
-                color=colorResource(R.color.white),
-                fontSize = 16.sp
-            )
-            IconButton(onClick = {
-                show_from_date_picker=true
-            }) {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    tint = colorResource(R.color.electric_green)
-                )
-            }
+    Column {
+        Row(modifier=Modifier.fillMaxWidth()){
+            Switch(
+                checked = mainViewModel.should_date_filter,
+                onCheckedChange = {
+                    mainViewModel.should_date_filter = !mainViewModel.should_date_filter
+                })
         }
-        Row(verticalAlignment = Alignment.CenterVertically){
-            Text(
-                text="To: $to_date",
-                color=colorResource(R.color.white),
-                fontSize = 16.sp
-            )
-            IconButton(onClick = {
-                show_to_date_picker=true
-            }) {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    tint = colorResource(R.color.electric_green)
-                )
+        AnimatedVisibility (mainViewModel.should_date_filter) {
+            Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "From: $from_date",
+                        color = colorResource(R.color.white),
+                        fontSize = 16.sp
+                    )
+                    IconButton(onClick = {
+                        show_from_date_picker = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = colorResource(R.color.electric_green)
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "To: $to_date",
+                        color = colorResource(R.color.white),
+                        fontSize = 16.sp
+                    )
+                    IconButton(onClick = {
+                        show_to_date_picker = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = colorResource(R.color.electric_green)
+                        )
+                    }
+                }
             }
         }
     }

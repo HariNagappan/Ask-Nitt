@@ -1,6 +1,7 @@
 package com.example.asknitt
 
 import android.R.attr.fontFamily
+import android.content.Intent
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -178,8 +179,18 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                     modifier = Modifier
                         .fillMaxWidth()
                 )
-                CustomTagsPlainShower(tags = doubt.tags)
+                if(doubt.tags.isEmpty()){
+                    Text(
+                        text="No tags for this question",
+                        color=colorResource(R.color.electric_red),
+                        fontSize = 16.sp
+                    )
+                }
+                else{
+                    CustomTagsPlainShower(tags = doubt.tags)
+                }
             }
+
             if(doubt.posted_username!=mainViewModel.username) {
                 Text(
                     text = "Asked by ${doubt.posted_username}",
@@ -198,6 +209,26 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 modifier = Modifier
                     .fillMaxWidth()
             )
+            if(doubt.paths.size>0) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "ATTACHMENTS:",
+                        color = colorResource(R.color.electric_blue),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    doubt.paths.forEach { path ->
+                        FileCard(
+                            filename=path.substringAfterLast('\\'),
+                            path = BASE_URL+"/"+ path,
+                            bgcolor = colorResource(R.color.dark_gray)
+                        )
+                    }
+                }
+            }
             Spacer(modifier=Modifier.height(32.dp))
             Text(
                 text="ANSWERS",
@@ -249,12 +280,14 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                         text = "ADD AN ANSWER +",
                         color = colorResource(R.color.dark_gray),
                         fontFamily = FontFamily(Font(R.font.foldable)),
+                        fontWeight = FontWeight.Bold,
                         fontSize = 24.sp
                     )
                 }
             }
             AnimatedVisibility(should_show_post_answer) {
                 Log.d("general","showing add answer")
+                mainViewModel.CLearAnswerFiles()
                 AddAnswer(
                     question_id = doubt.question_id,
                     mainViewModel=mainViewModel,
@@ -316,6 +349,27 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavCo
                 lineHeight = 36.sp,
                 color=colorResource(R.color.white)
             )
+            if(answer.paths.size>0) {
+                Spacer(modifier=Modifier.height(24.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "ATTACHMENTS:",
+                        color = colorResource(R.color.electric_blue),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    answer.paths.forEach { path ->
+                        FileCard(
+                            filename=path.substringAfterLast('\\'),
+                            path = BASE_URL+"/"+ path,
+                            bgcolor=colorResource(R.color.super_dark_gray)
+                        )
+                    }
+                }
+            }
             Spacer(modifier=Modifier.height(24.dp))
             Text(
                 text="Answered by: ${answer.answered_username}",

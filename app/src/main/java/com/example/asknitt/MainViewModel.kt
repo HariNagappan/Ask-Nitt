@@ -1,31 +1,19 @@
 package com.example.asknitt
 
-import android.R.attr.data
 import android.annotation.SuppressLint
 import android.content.Context
-import android.net.Uri
 import android.util.Log
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
-import gen._base._base_java__assetres.srcjar.R.id.info
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
-import retrofit2.Callback
-import retrofit2.Call
-import retrofit2.Response
 import java.time.LocalDate
-import kotlin.collections.map
-import kotlin.to
 
 @SuppressLint("NewApi")
 class MainViewModel: ViewModel() {
@@ -62,9 +50,11 @@ class MainViewModel: ViewModel() {
     var from_date by mutableStateOf(LocalDate.now())
     var to_date by mutableStateOf(LocalDate.now())
     var joined_on by mutableStateOf("")
+    var should_date_filter by mutableStateOf(false)
+
     var status_doubt_filter by mutableStateOf(QuestionStatus.ANY)
     val doubt_files:MutableList<UploadFileItem> =mutableStateListOf()
-
+    val answer_files:MutableList<UploadFileItem> =mutableStateListOf()
 
     fun SetUsername(new_username: String) {
         username = new_username
@@ -260,12 +250,20 @@ class MainViewModel: ViewModel() {
                     title = title,
                     question=question,
                     tags=cur_question_tags))
-
                 if(response.isSuccessful){
                     val body=response.body()
                     if(body!=null){
                         if(body.error_msg.isNullOrEmpty()){
-                            onFinish(true,"Successfully Posted Question")
+                            if(doubt_files.isNotEmpty()) {
+                                UploadFilesForDoubt(
+                                    onFinish = { success, msg ->
+                                        onFinish(success, msg)
+                                    }
+                                )
+                            }
+                            else{
+                                onFinish(true,"")
+                            }
                             ClearCurrentQuestionTags()
                         }
                         else{
@@ -314,7 +312,7 @@ class MainViewModel: ViewModel() {
                     val response = api.GetDoubtsByFilter(
                         search_text = search_text,
                         tags = search_question_tags,
-                        from_date = GetLocalInUTC(from_date.toString(), start_of_day = true),
+                        from_date = GetLocalInUTC(if(should_date_filter) from_date.toString() else LocalDate.of(1,1,1).toString(), start_of_day = true),
                         to_date = GetLocalInUTC(to_date.toString(), start_of_day = false),
                         status = status_doubt_filter.name
                     )
@@ -343,7 +341,6 @@ class MainViewModel: ViewModel() {
             }
     }
     fun MarkQuestionAsSolved(question_id: Int,onFinish: (Boolean, String) -> Unit){
-
             viewModelScope.launch {
                 try {
                     val response =
@@ -373,13 +370,38 @@ class MainViewModel: ViewModel() {
                 }
             }
     }
-    fun UploadFileForDoubt(onFinish: (Boolean, String) -> Unit){
+    fun UploadFilesForDoubt(onFinish: (Boolean, String) -> Unit){
+        val fileparts = doubt_files.mapIndexed { index,item ->
+            MultipartBody.Part.createFormData(
+                name = MULTIPARTBODY_FILE_KEY,
+                filename = item.filename,
+                body = item.multipartBody.body
+            )
+        }
+
         viewModelScope.launch {
             try{
-
+                val response=api.UploadFilesForDoubt(
+                    files=fileparts)
+                if (response.isSuccessful) {
+                    val tmp = response.body()
+                    if (tmp != null) {
+                        if (tmp.error_msg == "" || tmp.error_msg == null) {
+                            Log.d("apisuccess", "From UploadFilesForDoubt(): Successfully Uploaded Files")
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, tmp.error_msg)
+                        }
+                    } else {
+                        onFinish(false, "got null response")
+                    }
+                } else {
+                    Log.d("apifailure", "From UploadFilesForDoubt(): ${response.message()}")
+                    onFinish(false, response.message())
+                }
             }
             catch (e: Exception){
-                //onFinish(false,)
+                onFinish(false, "$e.message()")
             }
         }
     }
@@ -464,6 +486,9 @@ class MainViewModel: ViewModel() {
             }
 
     }
+    fun ClearDoubtFiles(){
+        doubt_files.clear()
+    }
 
     fun PostAnswer(question_id: Int,answer: String,onFinish: (Boolean, String) -> Unit){
 
@@ -481,7 +506,14 @@ class MainViewModel: ViewModel() {
                         if (tmp != null) {
                             if (tmp.error_msg == "" || tmp.error_msg == null) {
                                 Log.d("apisuccess", "From PostAnswer(): Successfully Posted Answer")
-                                onFinish(true, "")
+                                if(answer_files.isNotEmpty()) {
+                                    UploadFilesForAnswer(onFinish = { success, msg ->
+                                        onFinish(success, msg)
+                                    })
+                                }
+                                else {
+                                    onFinish(true, "")
+                                }
                             } else {
                                 onFinish(false, tmp.error_msg)
                             }
@@ -501,7 +533,6 @@ class MainViewModel: ViewModel() {
     fun GetAnswersByQuestionId(question_id:Int,onFinish:(Boolean,String)->Unit){
             viewModelScope.launch {
                 try {
-
                     val response = api.GetAnswers(question_id)
                     if (response.isSuccessful) {
                         val lst = response.body()
@@ -531,6 +562,43 @@ class MainViewModel: ViewModel() {
                 }
             }
 
+    }
+    fun UploadFilesForAnswer(onFinish: (Boolean, String) -> Unit){
+        val fileparts = answer_files.mapIndexed { index,item ->
+            MultipartBody.Part.createFormData(
+                name = MULTIPARTBODY_FILE_KEY,
+                filename = item.filename,
+                body = item.multipartBody.body
+            )
+        }
+        viewModelScope.launch {
+            try{
+                val response=api.UploadFilesForAnswer(
+                    files=fileparts)
+                if (response.isSuccessful) {
+                    val tmp = response.body()
+                    if (tmp != null) {
+                        if (tmp.error_msg == "" || tmp.error_msg == null) {
+                            Log.d("apisuccess", "From UploadFilesForDoubt(): Successfully Uploaded Files")
+                            onFinish(true, "")
+                        } else {
+                            onFinish(false, tmp.error_msg)
+                        }
+                    } else {
+                        onFinish(false, "got null response")
+                    }
+                } else {
+                    Log.d("apifailure", "From UploadFilesForDoubt(): ${response.message()}")
+                    onFinish(false, response.message())
+                }
+            }
+            catch (e: Exception){
+                onFinish(false, "$e.message()")
+            }
+        }
+    }
+    fun CLearAnswerFiles(){
+        answer_files.clear()
     }
 
     fun GetUserFriends(onFinish: (Boolean, String) -> Unit){

@@ -83,6 +83,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
 
     var should_show_search_field by remember{mutableStateOf(false)}
     var tag_search_focused by remember { mutableStateOf(false) }
+    var post_question_enabled by remember { mutableStateOf(true) }
 
     var show_title_question_error_dialog by remember{mutableStateOf(false)}
     var show_title_error_dialog by remember{mutableStateOf(false)}
@@ -91,6 +92,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
     var can_edit_title by remember { mutableStateOf(true) }
     var can_edit_question by remember { mutableStateOf(true) }
     var can_edit_tags by remember { mutableStateOf(true) }
+
 
     val filepicker= rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -263,7 +265,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Upload File",
+                        text = "Upload Files",
                         fontSize = 16.sp,
                         color = colorResource(R.color.electric_blue),
                         fontFamily = FontFamily(Font(R.font.foldable)),
@@ -305,6 +307,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                     }
                     else{
                         should_show_intermediate_screen=true
+                        post_question_enabled=false
                     }
                 },
                     colors= ButtonDefaults.buttonColors(
@@ -374,66 +377,12 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
             },
             onFailure = {
                 Log.d("apifailure", "from AddDoubtScreen: error posting question")
-                    should_show_intermediate_screen = false
-                    can_edit_title = true
-                    can_edit_question = true
-                    can_edit_tags = true
+                post_question_enabled=true
+                should_show_intermediate_screen = false
+                can_edit_title = true
+                can_edit_question = true
+                can_edit_tags = true
             }
         )
     }
-}
-@Composable
-fun FileUploadCard(fileItem: UploadFileItem,onDeleteClick:()->Unit,modifier: Modifier=Modifier){
-    Card(
-        modifier=Modifier.fillMaxWidth(),
-        colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray))
-    ){
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier=Modifier
-            .fillMaxWidth()
-            .padding(dimensionResource(R.dimen.med_padding))){
-            Text(
-                text=fileItem.filename,
-                color=colorResource(R.color.white),
-                fontSize=16.sp,
-            )
-            Spacer(modifier=Modifier.weight(1f))
-            IconButton(onClick = {
-                onDeleteClick()
-            },
-                colors = IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_red))) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Delete File",
-                    tint=colorResource(R.color.white)
-                )
-            }
-        }
-    }
-}
-fun GetFileNameFromUri(context: Context, uri: Uri): String {
-    var name: String? = null
-    if (uri.scheme == "content") {
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (nameIndex != -1) {
-                    name = it.getString(nameIndex)
-                }
-            }
-        }
-    }
-    if (name == null) {
-        name = uri.path?.substringAfterLast('/')
-    }
-    return name?:"Unknown File"
-}
-fun UriToMultipart(partName: String, context: Context, uri: Uri): MultipartBody.Part {
-    val fileName = GetFileNameFromUri(context, uri)
-    val inputStream = context.contentResolver.openInputStream(uri)
-    val bytes = inputStream?.readBytes() ?: byteArrayOf()
-    val requestBody = bytes.toRequestBody("*/*".toMediaTypeOrNull())
-    return MultipartBody.Part.createFormData(partName, fileName, requestBody)
 }

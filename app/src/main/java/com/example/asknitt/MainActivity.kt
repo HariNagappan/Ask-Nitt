@@ -168,6 +168,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                             should_verify_exp_sign = true,
                             navController = navController,
                             to_show_on_success = {
+                                mainViewModel.ClearDoubtFiles()
                                 AddDoubtScreen(mainViewModel=mainViewModel,navController=navController)
                             }
                         )

@@ -6,6 +6,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import okhttp3.Interceptor
 import okhttp3.MultipartBody
@@ -98,12 +99,11 @@ data class AllScreensNamesItem(val route:String,val label:String,val icon: Image
 data class Token(val token:String,val msg:String)
 data class PostDoubtItem(val username: String,val title:String,val question: String,val tags:List<String>)
 data class Tags(val tags:List<String>)
-data class Answer(val answer_id:Int,val answered_username:String,val answer_timestamp: String,val answer: String,val upvotes:Int,val downvotes:Int)
+data class Answer(val answer_id:Int,val answered_username:String,val answer_timestamp: String,val answer: String,val upvotes:Int,val downvotes:Int,val paths:List<String>)
 data class Vote(val add_to_upvote:Int=0,val add_to_downvote:Int=0,val answer_id: Int)
 data class PostAnswerToDoubtItem(val question_id: Int,val answer: String,val answered_username: String)
 @Serializable
-data class Doubt(val posted_username:String, val question_id:Int, val title:String, val question:String, val tags:List<String>, val question_timestamp:String,
-                 var status: QuestionStatus)
+data class Doubt(val posted_username:String, val question_id:Int, val title:String, val question:String, val tags:List<String>, val question_timestamp:String, var status: QuestionStatus,val paths:List<String>)
 data class CurrentUserInfo(val username: String,val people_helped:Int,val questions_asked:Int,val joined_on:String,val token:String="",val error_msg: String="")
 data class OtherUserInfo(val username: String, val people_helped:Int, val questions_asked:Int, val joined_on:String, val token:String="", val error_msg: String="",
                          var friend_status: FriendRequestStatus, var is_current_user_sender_of_request:Boolean)
@@ -113,11 +113,13 @@ data class GeneralUser(val username:String)
 data class MarkQuestionSolvedItem(val question_id:Int)
 data class UploadFileItem(val multipartBody: MultipartBody.Part,val filename:String)
 
+
 val privacy_modes=listOf("PRIVATE","FRIENDS ONLY","PUBLIC")
 var JWT_TOKEN=""
-var SHARED_PREFS_FILENAME_ENCRYPTED="ASKNITT"
-var SHARED_PREFS_FILENAME_NORMAL="ASKNITT_NORMAL"
-
+val SHARED_PREFS_FILENAME_ENCRYPTED="ASKNITT"
+val SHARED_PREFS_FILENAME_NORMAL="ASKNITT_NORMAL"
+val MULTIPARTBODY_FILE_KEY="files"
+val BASE_URL="http://192.168.1.34:5000"
 val authinterceptor = Interceptor { chain ->
     val request = chain.request().newBuilder()
         .addHeader("Authorization", JWT_TOKEN)
@@ -131,7 +133,7 @@ val client= OkHttpClient.Builder()
     .build()
 
 val retrofit= Retrofit.Builder()
-    .baseUrl("http://192.168.1.36:5000")
+    .baseUrl(BASE_URL)
     .client(client)
     .addConverterFactory(GsonConverterFactory.create())
     .build()
