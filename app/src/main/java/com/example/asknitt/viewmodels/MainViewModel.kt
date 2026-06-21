@@ -12,7 +12,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.example.asknitt.data.model.Answer
-import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.Doubts
 import com.example.asknitt.data.model.GeneralUser
 import com.example.asknitt.data.model.GetLocalInUTC
 import com.example.asknitt.data.model.GetUtcInLocalTime
@@ -26,7 +26,7 @@ import com.example.asknitt.data.model.QuestionStatus
 import com.example.asknitt.data.model.SHARED_PREFS_FILENAME_ENCRYPTED
 import com.example.asknitt.data.model.UploadFileItem
 import com.example.asknitt.data.model.User
-import com.example.asknitt.data.model.api
+import com.example.asknitt.data.remote.api
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import java.time.LocalDate
@@ -46,9 +46,9 @@ class MainViewModel: ViewModel() {
     var other_user_info: OtherUserInfo?=null
 
 
-    var user_doubts: MutableList<Doubt> = mutableStateListOf()
-    var recent_doubts: MutableList<Doubt> = mutableStateListOf()
-    var filtered_doubts:MutableList<Doubt> = mutableStateListOf()
+    var user_doubts: MutableList<Doubts> = mutableStateListOf()
+    var recent_doubts: MutableList<Doubts> = mutableStateListOf()
+    var filtered_doubts:MutableList<Doubts> = mutableStateListOf()
 
     var users_friends:MutableList<GeneralUser> = mutableStateListOf()
     var user_friend_requests_recieved:MutableList<GeneralUser> = mutableStateListOf()

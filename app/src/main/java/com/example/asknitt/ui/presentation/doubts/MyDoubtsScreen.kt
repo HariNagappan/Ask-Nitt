@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
-import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.Doubts
 import com.example.asknitt.data.model.GetUtcInLocalTime
 import com.example.asknitt.data.model.MainScreenRoutes
 import com.example.asknitt.data.model.QuestionStatus
@@ -107,7 +107,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel, navController: NavController, mod
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DoubtCard(navController: NavController,doubt: Doubt){
+fun DoubtCard(navController: NavController,doubt: Doubts){
     Card(
         colors=CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray)),
         modifier=Modifier

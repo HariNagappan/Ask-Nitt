@@ -3,7 +3,7 @@ package com.example.asknitt.data.remote
 import com.example.asknitt.data.model.Answer
 import com.example.asknitt.data.model.CheckSuccess
 import com.example.asknitt.data.model.CurrentUserInfo
-import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.Doubts
 import com.example.asknitt.data.model.GeneralUser
 import com.example.asknitt.data.model.MarkQuestionSolvedItem
 import com.example.asknitt.data.model.OtherUserInfo
@@ -32,7 +32,7 @@ interface ApiService {
 
 
     @GET("user_doubts")
-    suspend fun GetDoubts(@Query("username") username: String): Response<List<Doubt>>
+    suspend fun GetDoubts(@Query("username") username: String): Response<List<Doubts>>
 
     @POST("post_doubt")
     suspend fun PostDoubt(@Body postDoubtItem: PostDoubtItem): Response<CheckSuccess>
@@ -50,7 +50,7 @@ interface ApiService {
     suspend fun PostAnswer(@Body postAnswerToQuestion: PostAnswerToDoubtItem): Response<CheckSuccess>
 
     @GET("recent_doubts")
-    suspend fun GetRecentQuestions(): Response<List<Doubt>>
+    suspend fun GetRecentQuestions(): Response<List<Doubts>>
 
     @GET("current_user_info")
     suspend fun GetCurrentUserInfo(): Response<CurrentUserInfo>
@@ -61,7 +61,7 @@ interface ApiService {
                                   @Query("from_date") from_date: String,
                                   @Query("to_date") to_date: String,
                                   @Query("status") status: String
-    ): Response<List<Doubt>>
+    ): Response<List<Doubts>>
     @GET("get_users")
     suspend fun GetUsersByName(@Query("username_search_text") username_search_text:String): Response<List<GeneralUser>>
 

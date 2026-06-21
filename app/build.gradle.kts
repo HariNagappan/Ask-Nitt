@@ -78,6 +78,8 @@ dependencies {
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
     implementation ("com.squareup.okio:okio:3.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
+    val room_version = "3.0.0-alpha05"
+    implementation("androidx.room3:room3-runtime:${room_version}")
     implementation(libs.kotlinx.serialization.json)
 
 }

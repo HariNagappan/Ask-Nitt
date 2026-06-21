@@ -61,7 +61,7 @@ import com.example.asknitt.R
 import com.example.asknitt.data.model.Answer
 import com.example.asknitt.data.model.AuthScreenRoutes
 import com.example.asknitt.data.model.BASE_URL
-import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.Doubts
 import com.example.asknitt.data.model.GetUtcInLocalTime
 import com.example.asknitt.data.model.MAX_ANSWER_LENGTH
 import com.example.asknitt.data.model.MainScreenRoutes
@@ -70,7 +70,7 @@ import com.example.asknitt.ui.components.LoadingScreenWithToast
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ViewDoubtInDetail(doubt: Doubt, navController: NavController, mainViewModel: MainViewModel){
+fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel: MainViewModel){
     //TODO add edit doubt later
     var should_show_post_answer by remember{mutableStateOf(false)}
     var scrollstate = rememberScrollState()

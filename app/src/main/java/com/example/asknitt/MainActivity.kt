@@ -52,7 +52,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.example.asknitt.data.model.AllScreensNamesItem
 import com.example.asknitt.data.model.AuthScreenRoutes
-import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.Doubts
 import com.example.asknitt.data.model.GeneralUser
 import com.example.asknitt.data.model.JWT_TOKEN
 import com.example.asknitt.data.model.LoginType
@@ -263,8 +263,8 @@ fun NavigationScreen(mainViewModel: MainViewModel = viewModel(), navController: 
                 }
             }
 
-            composable<Doubt> {
-                val doubt=it.toRoute<Doubt>()
+            composable<Doubts> {
+                val doubt=it.toRoute<Doubts>()
                 LoadingScreenWithRetry(
                     inside_launched_effect = { onResult ->
                         mainViewModel.GetAnswersByQuestionId(
