@@ -1,10 +1,6 @@
 package com.example.asknitt
 
-import android.R.attr.entries
-import android.R.attr.name
 import android.content.Context
-import android.graphics.Paint
-import android.net.http.SslCertificate.restoreState
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -14,10 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ContextualFlowColumn
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,7 +20,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,37 +28,50 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import com.example.asknitt.data.model.AllScreensNamesItem
+import com.example.asknitt.data.model.AuthScreenRoutes
+import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.GeneralUser
+import com.example.asknitt.data.model.JWT_TOKEN
+import com.example.asknitt.data.model.LoginType
+import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.model.SHARED_PREFS_FILENAME_ENCRYPTED
+import com.example.asknitt.ui.components.LoadingScreenWithRetry
+import com.example.asknitt.ui.presentation.auth.LoginScreen
+import com.example.asknitt.ui.presentation.doubts.AddDoubtScreen
+import com.example.asknitt.ui.presentation.doubts.DoubtsScreen
+import com.example.asknitt.ui.presentation.doubts.ViewDoubtInDetail
+import com.example.asknitt.ui.presentation.home.HomeScreenIntermediate
+import com.example.asknitt.ui.presentation.search.SearchScreen
+import com.example.asknitt.ui.presentation.settings.SettingsScreen
+import com.example.asknitt.ui.presentation.social.ExploreUsersHome
+import com.example.asknitt.ui.presentation.social.FriendRequests
+import com.example.asknitt.ui.presentation.social.Friends
+import com.example.asknitt.ui.presentation.social.ViewUserInDetail
 import com.example.asknitt.ui.theme.AskNITTTheme
-import java.util.Map.entry
-import kotlin.math.log
+import com.example.asknitt.viewmodels.MainViewModel
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -88,7 +93,7 @@ class MainActivity : ComponentActivity() {
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
+fun NavigationScreen(mainViewModel: MainViewModel = viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
     Scaffold(
         containerColor = Color.Black,
         bottomBar = {
@@ -101,7 +106,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
     {
         NavHost(
             navController = navController,
-            startDestination = if(JWT_TOKEN=="") AuthScreenRoutes.AUTH.name else MainScreenRoutes.MAIN.name,
+            startDestination = if(JWT_TOKEN =="") AuthScreenRoutes.AUTH.name else MainScreenRoutes.MAIN.name,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = it.calculateBottomPadding())
@@ -131,10 +136,13 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                 route = MainScreenRoutes.MAIN.name
             ) {
                 composable(MainScreenRoutes.HOME.name) {
-                    HomeScreenIntermediate(mainViewModel = mainViewModel,navController=navController)
+                    HomeScreenIntermediate(
+                        mainViewModel = mainViewModel,
+                        navController = navController
+                    )
                 }
                 composable(MainScreenRoutes.SETTINGS.name) {
-                    SettingsScreen(navController=navController, mainViewModel = mainViewModel)
+                    SettingsScreen(navController = navController, mainViewModel = mainViewModel)
                 }
                 navigation(
                     startDestination = MainScreenRoutes.MY_DOUBTS_LIST.name,
@@ -142,34 +150,40 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                 ) {
                     composable(MainScreenRoutes.MY_DOUBTS_LIST.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = {onResult->
+                            inside_launched_effect = { onResult ->
                                 mainViewModel.GetDoubtsByUsername(
                                     username = mainViewModel.username,
-                                    onFinish ={success,msg->
-                                        onResult(success,msg)
+                                    onFinish = { success, msg ->
+                                        onResult(success, msg)
                                     }
                                 )
                             },
-                            navController=navController,
+                            navController = navController,
                             should_verify_exp_sign = false,
                             to_show_on_success = {
-                                DoubtsScreen(mainViewModel=mainViewModel,navController=navController)
+                                DoubtsScreen(
+                                    mainViewModel = mainViewModel,
+                                    navController = navController
+                                )
                             }
                         )
                     }
                     composable(MainScreenRoutes.ADD_DOUBT.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = {onResult->
+                            inside_launched_effect = { onResult ->
                                 mainViewModel.GetTags(
-                                    onFinish = {success,new_msg->
-                                        onResult(success,new_msg)
+                                    onFinish = { success, new_msg ->
+                                        onResult(success, new_msg)
                                     })
                             },
                             should_verify_exp_sign = true,
                             navController = navController,
                             to_show_on_success = {
                                 mainViewModel.ClearDoubtFiles()
-                                AddDoubtScreen(mainViewModel=mainViewModel,navController=navController)
+                                AddDoubtScreen(
+                                    mainViewModel = mainViewModel,
+                                    navController = navController
+                                )
                             }
                         )
                     }
@@ -184,17 +198,20 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                 ) {
                     composable(MainScreenRoutes.SEARCH.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = {onResult->
+                            inside_launched_effect = { onResult ->
                                 mainViewModel.GetTags(
-                                    onFinish ={success,msg->
-                                        onResult(success,msg)
+                                    onFinish = { success, msg ->
+                                        onResult(success, msg)
                                     }
                                 )
                             },
                             should_verify_exp_sign = false,
                             navController = navController,
                             to_show_on_success = {
-                                SearchScreen(mainViewModel=mainViewModel,navController=navController)
+                                SearchScreen(
+                                    mainViewModel = mainViewModel,
+                                    navController = navController
+                                )
                             }
                         )
                     }
@@ -204,38 +221,44 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
                     route= MainScreenRoutes.EXPLORE_USERS_STUFF.name) {
                     composable(MainScreenRoutes.EXPLORE_USERS_HOME.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = {onResult->
+                            inside_launched_effect = { onResult ->
                                 mainViewModel.GetUsersByName(
                                     username_search_text = "",
-                                    onFinish = {success,error_msg->
-                                        onResult(success,error_msg)
+                                    onFinish = { success, error_msg ->
+                                        onResult(success, error_msg)
                                     })
                             },
                             should_verify_exp_sign = true,
                             navController = navController,
                             to_show_on_success = {
-                                ExploreUsersHome(mainViewModel=mainViewModel,navController=navController)
+                                ExploreUsersHome(
+                                    mainViewModel = mainViewModel,
+                                    navController = navController
+                                )
                             }
                         )
                     }
                     composable(MainScreenRoutes.FRIENDS.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = {onResult->
+                            inside_launched_effect = { onResult ->
                                 mainViewModel.GetUserFriends(
-                                    onFinish = {success,msg->
-                                        onResult(success,msg)
+                                    onFinish = { success, msg ->
+                                        onResult(success, msg)
                                     }
                                 )
                             },
-                            navController=navController,
+                            navController = navController,
                             should_verify_exp_sign = true,
                             to_show_on_success = {
-                                Friends(mainViewModel=mainViewModel,navController=navController)
+                                Friends(
+                                    mainViewModel = mainViewModel,
+                                    navController = navController
+                                )
                             }
                         )
                     }
                     composable(MainScreenRoutes.FRIEND_REQUESTS.name) {
-                        FriendRequests(mainViewModel=mainViewModel,navController=navController)
+                        FriendRequests(mainViewModel = mainViewModel, navController = navController)
                     }
                 }
             }
@@ -243,38 +266,46 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
             composable<Doubt> {
                 val doubt=it.toRoute<Doubt>()
                 LoadingScreenWithRetry(
-                    inside_launched_effect = {onResult->
+                    inside_launched_effect = { onResult ->
                         mainViewModel.GetAnswersByQuestionId(
                             question_id = doubt.question_id,
-                            onFinish = {success,new_msg->
-                                onResult(success,new_msg)
+                            onFinish = { success, new_msg ->
+                                onResult(success, new_msg)
                             })
                     },
                     should_verify_exp_sign = false,
                     navController = navController,
                     to_show_on_success = {
-                        ViewDoubtInDetail(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
+                        ViewDoubtInDetail(
+                            doubt = doubt,
+                            navController = navController,
+                            mainViewModel = mainViewModel
+                        )
                     }
                 )
             }
             composable<GeneralUser>{
                 val generalUser=it.toRoute<GeneralUser>()
                 LoadingScreenWithRetry(
-                    inside_launched_effect = {onResult->
+                    inside_launched_effect = { onResult ->
                         mainViewModel.GetOtherUserInfo(
                             other_username = generalUser.username,
-                            onFinish = {success,msg->
-                                onResult(success,msg)
+                            onFinish = { success, msg ->
+                                onResult(success, msg)
                             }
                         )
                     },
                     should_verify_exp_sign = true,
                     navController = navController,
                     to_show_on_success = {
-                        Log.d("general","mainviewmodel.other_user:${mainViewModel.other_user_info}")
+                        Log.d(
+                            "general",
+                            "mainviewmodel.other_user:${mainViewModel.other_user_info}"
+                        )
                         ViewUserInDetail(
-                            mainViewModel=mainViewModel,
-                            navController=navController)
+                            mainViewModel = mainViewModel,
+                            navController = navController
+                        )
                     }
                 )
 
@@ -283,7 +314,7 @@ fun NavigationScreen(mainViewModel: MainViewModel= viewModel(), navController: N
     }
 }
 @Composable
-fun CustomBottomNavigationBar(mainViewModel: MainViewModel,navController: NavHostController){
+fun CustomBottomNavigationBar(mainViewModel: MainViewModel, navController: NavHostController){
     val entries =GetBottomBarEntries()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.hierarchy
@@ -349,9 +380,9 @@ fun GetBottomBarEntries():List<AllScreensNamesItem>{
             icon = Icons.Default.Search
         ),
         AllScreensNamesItem(
-            route=MainScreenRoutes.EXPLORE_USERS_STUFF.name,
-            label="Explore",
-            icon=Icons.Default.People
+            route = MainScreenRoutes.EXPLORE_USERS_STUFF.name,
+            label = "Explore",
+            icon = Icons.Default.People
         ),
         AllScreensNamesItem(
             route = MainScreenRoutes.SETTINGS.name,

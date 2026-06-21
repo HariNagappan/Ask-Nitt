@@ -1,4 +1,4 @@
-package com.example.asknitt
+package com.example.asknitt.viewmodels
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -11,6 +11,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import com.example.asknitt.data.model.Answer
+import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.GeneralUser
+import com.example.asknitt.data.model.GetLocalInUTC
+import com.example.asknitt.data.model.GetUtcInLocalTime
+import com.example.asknitt.data.model.JWT_TOKEN
+import com.example.asknitt.data.model.MULTIPARTBODY_FILE_KEY
+import com.example.asknitt.data.model.MarkQuestionSolvedItem
+import com.example.asknitt.data.model.OtherUserInfo
+import com.example.asknitt.data.model.PostAnswerToDoubtItem
+import com.example.asknitt.data.model.PostDoubtItem
+import com.example.asknitt.data.model.QuestionStatus
+import com.example.asknitt.data.model.SHARED_PREFS_FILENAME_ENCRYPTED
+import com.example.asknitt.data.model.UploadFileItem
+import com.example.asknitt.data.model.User
+import com.example.asknitt.data.model.api
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import java.time.LocalDate
@@ -26,24 +42,24 @@ class MainViewModel: ViewModel() {
 //    val uistate: StateFlow<UiState> = _uistate
     var search_question_text=""
 
-    val all_users:MutableList<GeneralUser> =mutableStateListOf()
+    val all_users:MutableList<GeneralUser> = mutableStateListOf()
     var other_user_info: OtherUserInfo?=null
 
 
-    var user_doubts: MutableList<Doubt> =mutableStateListOf()
-    var recent_doubts: MutableList<Doubt> =mutableStateListOf()
-    var filtered_doubts:MutableList<Doubt> =mutableStateListOf()
+    var user_doubts: MutableList<Doubt> = mutableStateListOf()
+    var recent_doubts: MutableList<Doubt> = mutableStateListOf()
+    var filtered_doubts:MutableList<Doubt> = mutableStateListOf()
 
-    var users_friends:MutableList<GeneralUser> =mutableStateListOf()
-    var user_friend_requests_recieved:MutableList<GeneralUser> =mutableStateListOf()
-    var user_friend_requests_sent:MutableList<GeneralUser> =mutableStateListOf()
+    var users_friends:MutableList<GeneralUser> = mutableStateListOf()
+    var user_friend_requests_recieved:MutableList<GeneralUser> = mutableStateListOf()
+    var user_friend_requests_sent:MutableList<GeneralUser> = mutableStateListOf()
 
 
-    val tags: MutableList<String> =mutableStateListOf() 
-    var cur_question_tags: MutableList<String> =mutableStateListOf()
-    var search_question_tags: MutableList<String> =mutableStateListOf()
+    val tags: MutableList<String> = mutableStateListOf()
+    var cur_question_tags: MutableList<String> = mutableStateListOf()
+    var search_question_tags: MutableList<String> = mutableStateListOf()
 
-    var cur_question_answers: MutableList<Answer> =mutableStateListOf()
+    var cur_question_answers: MutableList<Answer> = mutableStateListOf()
     var user_questions_asked by mutableStateOf(0)
     var user_questions_helped by mutableStateOf(0)
 
@@ -53,8 +69,8 @@ class MainViewModel: ViewModel() {
     var should_date_filter by mutableStateOf(false)
 
     var status_doubt_filter by mutableStateOf(QuestionStatus.ANY)
-    val doubt_files:MutableList<UploadFileItem> =mutableStateListOf()
-    val answer_files:MutableList<UploadFileItem> =mutableStateListOf()
+    val doubt_files:MutableList<UploadFileItem> = mutableStateListOf()
+    val answer_files:MutableList<UploadFileItem> = mutableStateListOf()
 
     fun SetUsername(new_username: String) {
         username = new_username
@@ -125,7 +141,7 @@ class MainViewModel: ViewModel() {
                 }
             }
     }
-    fun Logout(context: Context,onFinish: (Boolean, String) -> Unit){
+    fun Logout(context: Context, onFinish: (Boolean, String) -> Unit){
         DeleteJWTToken(context=context)
         onFinish(true,"")
     }
@@ -245,11 +261,14 @@ class MainViewModel: ViewModel() {
     fun PostUserDoubt(title:String, question:String,onFinish: (Boolean, String) -> Unit){
         viewModelScope.launch {
             try {
-                val response=api.PostDoubt(PostDoubtItem(
-                    username=username,
-                    title = title,
-                    question=question,
-                    tags=cur_question_tags))
+                val response= api.PostDoubt(
+                    PostDoubtItem(
+                        username = username,
+                        title = title,
+                        question = question,
+                        tags = cur_question_tags
+                    )
+                )
                 if(response.isSuccessful){
                     val body=response.body()
                     if(body!=null){
@@ -312,7 +331,13 @@ class MainViewModel: ViewModel() {
                     val response = api.GetDoubtsByFilter(
                         search_text = search_text,
                         tags = search_question_tags,
-                        from_date = GetLocalInUTC(if(should_date_filter) from_date.toString() else LocalDate.of(1,1,1).toString(), start_of_day = true),
+                        from_date = GetLocalInUTC(
+                            if (should_date_filter) from_date.toString() else LocalDate.of(
+                                1,
+                                1,
+                                1
+                            ).toString(), start_of_day = true
+                        ),
                         to_date = GetLocalInUTC(to_date.toString(), start_of_day = false),
                         status = status_doubt_filter.name
                     )
@@ -381,7 +406,7 @@ class MainViewModel: ViewModel() {
 
         viewModelScope.launch {
             try{
-                val response=api.UploadFilesForDoubt(
+                val response= api.UploadFilesForDoubt(
                     files=fileparts)
                 if (response.isSuccessful) {
                     val tmp = response.body()
@@ -457,7 +482,7 @@ class MainViewModel: ViewModel() {
             viewModelScope.launch {
                 try {
                     val response = api.VoteAnswer(
-                        Vote(
+                        com.example.asknitt.data.model.Vote(
                             answer_id = answer_id,
                             add_to_upvote = add_to_upvote,
                             add_to_downvote = add_to_downvote
@@ -573,7 +598,7 @@ class MainViewModel: ViewModel() {
         }
         viewModelScope.launch {
             try{
-                val response=api.UploadFilesForAnswer(
+                val response= api.UploadFilesForAnswer(
                     files=fileparts)
                 if (response.isSuccessful) {
                     val tmp = response.body()
@@ -781,7 +806,7 @@ class MainViewModel: ViewModel() {
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
         val edit=prefs.edit()
-        edit.putString("JWTToken",JWT_TOKEN)
+        edit.putString("JWTToken", JWT_TOKEN)
         edit.apply()
     }
     fun DeleteJWTToken(context: Context){

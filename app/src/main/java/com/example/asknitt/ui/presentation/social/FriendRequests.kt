@@ -1,4 +1,4 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.social
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,13 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -48,11 +45,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.GeneralUser
+import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.ui.components.LoadingScreenWithRetry
+import com.example.asknitt.ui.components.LoadingScreenWithToast
 
 @Composable
-fun FriendRequests(mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
+fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, modifier:Modifier=Modifier){
     val tabs=listOf("Received","Sent")
     var selected_option by remember { mutableStateOf(tabs[0]) }
     Box(modifier=Modifier.fillMaxSize().background(colorResource(R.color.black))) {
@@ -111,7 +112,8 @@ fun FriendRequests(mainViewModel: MainViewModel,navController: NavController,mod
                     Text(
                         text=tab_name,
                         fontSize = 16.sp,
-                        color=if(is_selected) colorResource(R.color.electric_green) else colorResource(R.color.white),
+                        color=if(is_selected) colorResource(R.color.electric_green) else colorResource(
+                            R.color.white),
                         textAlign = TextAlign.Center,
                         modifier=Modifier
                             .weight(1f)
@@ -134,7 +136,12 @@ fun FriendRequests(mainViewModel: MainViewModel,navController: NavController,mod
                         },
                         navController = navController,
                         should_verify_exp_sign = true,
-                        to_show_on_success = {RecievedFriendRequests(mainViewModel=mainViewModel,navController=navController)},
+                        to_show_on_success = {
+                            RecievedFriendRequests(
+                                mainViewModel = mainViewModel,
+                                navController = navController
+                            )
+                        },
                     )
                 }
                 "Sent"->{
@@ -148,7 +155,12 @@ fun FriendRequests(mainViewModel: MainViewModel,navController: NavController,mod
                         },
                         navController = navController,
                         should_verify_exp_sign = true,
-                        to_show_on_success = {SentFriendRequests(mainViewModel=mainViewModel,navController=navController)},
+                        to_show_on_success = {
+                            SentFriendRequests(
+                                mainViewModel = mainViewModel,
+                                navController = navController
+                            )
+                        },
                     )
                 }
             }
@@ -156,7 +168,7 @@ fun FriendRequests(mainViewModel: MainViewModel,navController: NavController,mod
     }
 }
 @Composable
-fun RecievedFriendRequests(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun RecievedFriendRequests(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     if(mainViewModel.user_friend_requests_recieved.isEmpty()){
         Box(modifier=Modifier.fillMaxSize()){
             Text(
@@ -272,45 +284,45 @@ fun FriendRequestCard(generalUser: GeneralUser, mainViewModel: MainViewModel, na
         }
         if(show_accept_request_loading){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.AcceptFriendRequest(
                         other_username = generalUser.username,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "Friend Request Accepted",
                 onSuccess = {
                     navController.navigateUp()
                     navController.navigate(MainScreenRoutes.FRIEND_REQUESTS.name)
-                    show_accept_request_loading=false
+                    show_accept_request_loading = false
                 },
                 onFailure = {
-                    show_accept_request_loading=false
+                    show_accept_request_loading = false
                 }
             )
         }
         if(show_decline_request_loading){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.DeclineFriendRequest(
                         other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "Declined Friend Request",
                 onSuccess = {
                     navController.navigateUp()
                     navController.navigate(MainScreenRoutes.FRIEND_REQUESTS.name)
-                    show_decline_request_loading=false
+                    show_decline_request_loading = false
                 },
                 onFailure = {
-                    show_decline_request_loading=false
+                    show_decline_request_loading = false
                 }
             )
         }

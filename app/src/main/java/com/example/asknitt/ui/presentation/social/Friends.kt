@@ -1,27 +1,20 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.social
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -39,9 +32,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.MainScreenRoutes
 
 @Composable
-fun Friends(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun Friends(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color= colorResource(R.color.black))){
@@ -74,7 +70,8 @@ fun Friends(mainViewModel: MainViewModel,navController: NavController,modifier: 
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier= Modifier
                 .fillMaxSize()
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+                    R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
         ) {
             Text(
                 text = "Friends",

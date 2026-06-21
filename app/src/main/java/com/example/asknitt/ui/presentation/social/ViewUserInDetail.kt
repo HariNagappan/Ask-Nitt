@@ -1,6 +1,7 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.social
 
-import android.widget.Toast
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,13 +24,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,17 +37,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.FriendRequestStatus
+import com.example.asknitt.data.model.GeneralUser
+import com.example.asknitt.data.model.GetUtcInLocalTime
+import com.example.asknitt.ui.components.LoadingScreenWithToast
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ViewUserInDetail(mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
+fun ViewUserInDetail(mainViewModel: MainViewModel, navController: NavController, modifier:Modifier=Modifier){
     var show_send_request_loading by remember{mutableStateOf(false)}
     var show_accept_request_loading by remember { mutableStateOf(false) }
     var show_decline_request_loading by remember { mutableStateOf(false) }
@@ -78,7 +81,9 @@ fun ViewUserInDetail(mainViewModel: MainViewModel,navController: NavController,m
             modifier= Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
-                .padding(top=dimensionResource(R.dimen.from_top_padding)*2,bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(top=dimensionResource(R.dimen.from_top_padding)*2,bottom=dimensionResource(
+                    R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(
+                    R.dimen.large_padding))
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
@@ -171,7 +176,8 @@ fun ViewUserInDetail(mainViewModel: MainViewModel,navController: NavController,m
                                 onClick = {
                                     show_accept_request_loading=true
                                 },
-                                colors= IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_green))
+                                colors= IconButtonDefaults.iconButtonColors(containerColor = colorResource(
+                                    R.color.electric_green))
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
@@ -184,7 +190,8 @@ fun ViewUserInDetail(mainViewModel: MainViewModel,navController: NavController,m
                             onClick = {
                                 show_decline_request_loading=true
                             },
-                            colors= IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_red))
+                            colors= IconButtonDefaults.iconButtonColors(containerColor = colorResource(
+                                R.color.electric_red))
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
@@ -198,69 +205,69 @@ fun ViewUserInDetail(mainViewModel: MainViewModel,navController: NavController,m
         }
         if(show_send_request_loading){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.SendFriendRequest(
                         other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "Sent Friend Request",
                 onSuccess = {
                     navController.navigateUp()
-                    navController.navigate(GeneralUser(username=mainViewModel.other_user_info!!.username))
+                    navController.navigate(GeneralUser(username = mainViewModel.other_user_info!!.username))
 //                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.PENDING
 //                    mainViewModel.other_user_info!!.is_current_user_sender_of_request=true
-                show_send_request_loading=false
-                            },
+                    show_send_request_loading = false
+                },
                 onFailure = {
-                    show_send_request_loading=false
+                    show_send_request_loading = false
                 }
             )
         }
         if(show_accept_request_loading){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.AcceptFriendRequest(
                         other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "Friend Request Accepted",
                 onSuccess = {
                     navController.navigateUp()
-                    navController.navigate(GeneralUser(username=mainViewModel.other_user_info!!.username))//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.ACCEPTED
-                    show_accept_request_loading=false
+                    navController.navigate(GeneralUser(username = mainViewModel.other_user_info!!.username))//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.ACCEPTED
+                    show_accept_request_loading = false
                 },
                 onFailure = {
-                    show_accept_request_loading=false
+                    show_accept_request_loading = false
                 }
             )
         }
         if(show_decline_request_loading){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.DeclineFriendRequest(
                         other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "Declined Friend Request",
                 onSuccess = {
                     navController.navigateUp()
-                    navController.navigate(GeneralUser(username=mainViewModel.other_user_info!!.username))//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.NOT_SENT
-                    show_decline_request_loading=false
+                    navController.navigate(GeneralUser(username = mainViewModel.other_user_info!!.username))//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.NOT_SENT
+                    show_decline_request_loading = false
                 },
                 onFailure = {
-                    show_decline_request_loading=false
+                    show_decline_request_loading = false
                 }
             )
         }

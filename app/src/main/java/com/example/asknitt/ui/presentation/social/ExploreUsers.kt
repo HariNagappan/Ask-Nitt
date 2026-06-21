@@ -1,4 +1,4 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.social
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,9 +39,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.GeneralUser
+import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.ui.components.LoadingScreenWithToast
+import com.example.asknitt.ui.components.SearchTextField
 
 @Composable
-fun ExploreUsersHome(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun ExploreUsersHome(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     var cur_text by remember{ mutableStateOf("") }
     var should_search by remember { mutableStateOf(false) }
     Box(modifier=Modifier
@@ -51,7 +57,8 @@ fun ExploreUsersHome(mainViewModel: MainViewModel,navController: NavController,m
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier= Modifier
                 .fillMaxSize()
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+                    R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -141,25 +148,25 @@ fun ExploreUsersHome(mainViewModel: MainViewModel,navController: NavController,m
         }
         if(should_search){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.GetUsersByName(
-                        username_search_text =cur_text,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        username_search_text = cur_text,
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "",
                 should_show_success_toast = false,
-                onSuccess = {should_search=false},
-                onFailure = { should_search=false }
+                onSuccess = { should_search = false },
+                onFailure = { should_search = false }
             )
         }
     }
 }
 @Composable
-fun UserCard(generalUser: GeneralUser,navController: NavController,modifier:Modifier=Modifier){
+fun UserCard(generalUser: GeneralUser, navController: NavController, modifier:Modifier=Modifier){
     Card(
         modifier=Modifier.fillMaxWidth(),
         colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray))) {

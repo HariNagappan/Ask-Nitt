@@ -1,4 +1,4 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.doubts
 
 import android.os.Build
 import android.util.Log
@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,50 +21,43 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PostAdd
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.GetUtcInLocalTime
+import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.model.QuestionStatus
 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DoubtsScreen(mainViewModel: MainViewModel,navController: NavController ,modifier: Modifier=Modifier){
+fun DoubtsScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black)){
-        Column(horizontalAlignment = Alignment.CenterHorizontally,modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally,modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(
+            R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+            R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
             Text(
                 text="YOUR DOUBTS",
                 color= colorResource(R.color.electric_gold),
@@ -128,7 +120,8 @@ fun DoubtCard(navController: NavController,doubt: Doubt){
             Icon(
                 imageVector = Icons.Default.Circle,
                 contentDescription = "Status",
-                tint=if(doubt.status== QuestionStatus.PENDING) colorResource(R.color.electric_green) else colorResource(R.color.electric_red),
+                tint=if(doubt.status== QuestionStatus.PENDING) colorResource(R.color.electric_green) else colorResource(
+                    R.color.electric_red),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
             )
@@ -242,7 +235,8 @@ fun TagItem(
         ) {
             Text(
                 text = text,
-                color = if(should_show_cross) colorResource(R.color.electric_green) else colorResource(R.color.white),
+                color = if(should_show_cross) colorResource(R.color.electric_green) else colorResource(
+                    R.color.white),
                 fontSize = 12.sp,
                 modifier = Modifier
                     .clickable {

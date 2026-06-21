@@ -1,24 +1,19 @@
-package com.example.asknitt
+package com.example.asknitt.data.model
 
-import android.R.attr.data
-import android.R.attr.level
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.vector.ImageVector
-import kotlinx.serialization.Contextual
+import com.example.asknitt.data.remote.ApiService
 import kotlinx.serialization.Serializable
 import okhttp3.Interceptor
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
@@ -119,7 +114,7 @@ var JWT_TOKEN=""
 val SHARED_PREFS_FILENAME_ENCRYPTED="ASKNITT"
 val SHARED_PREFS_FILENAME_NORMAL="ASKNITT_NORMAL"
 val MULTIPARTBODY_FILE_KEY="files"
-val BASE_URL="http://192.168.1.34:5000"
+val BASE_URL="http://192.168.31.22:5000"
 val authinterceptor = Interceptor { chain ->
     val request = chain.request().newBuilder()
         .addHeader("Authorization", JWT_TOKEN)

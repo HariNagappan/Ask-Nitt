@@ -1,6 +1,5 @@
-package com.example.asknitt
+package com.example.asknitt.util
 
-import android.R.attr.onClick
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -21,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -31,9 +29,11 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.core.net.toUri
+import com.example.asknitt.R
+import com.example.asknitt.data.model.UploadFileItem
 
 @Composable
-fun FileUploadCard(fileItem: UploadFileItem,onDeleteClick:()->Unit,modifier: Modifier=Modifier){
+fun FileUploadCard(fileItem: UploadFileItem, onDeleteClick:()->Unit, modifier: Modifier=Modifier){
     Card(
         modifier=Modifier.fillMaxWidth(),
         colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray))

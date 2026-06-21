@@ -1,4 +1,4 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.search
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import android.app.DatePickerDialog
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,16 +24,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.FilterListOff
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FilterListOff
-import androidx.compose.material.icons.outlined.Tag
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -43,36 +34,38 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.FilterItem
+import com.example.asknitt.data.model.MAX_TAG_LENGTH
+import com.example.asknitt.data.model.QuestionStatus
+import com.example.asknitt.ui.components.LoadingScreenWithRetry
+import com.example.asknitt.ui.components.SearchTextField
+import com.example.asknitt.ui.presentation.doubts.CustomTagsShowerRemovable
+import com.example.asknitt.ui.presentation.doubts.CustomTagsSuggestionShower
+import com.example.asknitt.ui.presentation.doubts.DoubtCard
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modifier:Modifier=Modifier){
+fun SearchScreen(navController: NavController, mainViewModel: MainViewModel, modifier:Modifier=Modifier){
     var search_text by remember{ mutableStateOf(mainViewModel.search_question_text) }
     var show_searching_loading by remember { mutableStateOf(false) }
     var should_show_filter_box by remember { mutableStateOf(false) }
@@ -81,7 +74,8 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
             modifier= Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding)),
+                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+                    R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding)),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(modifier=Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -99,7 +93,7 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
                     singleLine = true,
                     onValueChanged = { new_text ->
                         search_text = new_text
-                        mainViewModel.search_question_text=new_text
+                        mainViewModel.search_question_text = new_text
                     },
                     placeholder_text = "Search Questions Here",
                     modifier = Modifier
@@ -153,7 +147,7 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
                     mainViewModel.filtered_doubts.forEach { doubt ->
                         DoubtCard(
                             navController = navController,
-                            doubt=doubt
+                            doubt = doubt
                         )
                     }
                 }
@@ -162,28 +156,28 @@ fun SearchScreen(navController: NavController, mainViewModel: MainViewModel,modi
     }
     if(show_searching_loading){
         LoadingScreenWithRetry(
-            inside_launched_effect = {onResult->
+            inside_launched_effect = { onResult ->
                 mainViewModel.SearchDoubts(
-                    search_text=search_text,
-                    onFinish = {success,msg->
-                        onResult(success,msg)
+                    search_text = search_text,
+                    onFinish = { success, msg ->
+                        onResult(success, msg)
                     })
             },
-            navController=navController,
+            navController = navController,
             should_verify_exp_sign = false,
             to_show_on_success = {
-                show_searching_loading=false
+                show_searching_loading = false
             }
         )
     }
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FilterBox(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
+fun FilterBox(mainViewModel: MainViewModel, modifier:Modifier=Modifier){
     val filters:List<FilterItem> =listOf(
-        FilterItem(idx=0,name="Tags"),
-        FilterItem(idx=1,name="Timestamp"),
-        FilterItem(idx=2,name="Status")
+        FilterItem(idx = 0, name = "Tags"),
+        FilterItem(idx = 1, name = "Timestamp"),
+        FilterItem(idx = 2, name = "Status")
         )
     var selectedoption by remember { mutableStateOf(filters[0].name) }
     Box(modifier=Modifier
@@ -227,7 +221,7 @@ fun FilterBox(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
     }
 }
 @Composable
-fun TagsSelectionTab(mainViewModel: MainViewModel,modifier: Modifier=Modifier){
+fun TagsSelectionTab(mainViewModel: MainViewModel, modifier: Modifier=Modifier){
     var tag_search_text by remember { mutableStateOf("") }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -297,7 +291,7 @@ fun TagsSelectionTab(mainViewModel: MainViewModel,modifier: Modifier=Modifier){
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TimeStampSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
+fun TimeStampSelectionTab(mainViewModel: MainViewModel, modifier:Modifier=Modifier){
     var show_from_date_picker by remember { mutableStateOf(false) }
     var show_to_date_picker by remember { mutableStateOf(false) }
     var from_date by remember { mutableStateOf(mainViewModel.from_date) }
@@ -392,7 +386,7 @@ fun TimeStampSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifie
 }
 
 @Composable
-fun StatusSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
+fun StatusSelectionTab(mainViewModel: MainViewModel, modifier:Modifier=Modifier){
     var selected_status by remember { mutableStateOf(mainViewModel.status_doubt_filter) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -406,7 +400,7 @@ fun StatusSelectionTab(mainViewModel: MainViewModel,modifier:Modifier=Modifier){
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier=Modifier.fillMaxWidth()){
-            QuestionStatus.entries.forEach {question_status->
+            QuestionStatus.entries.forEach { question_status->
                 val isselected=(question_status==selected_status)
                 Text(
                     text=if(question_status== QuestionStatus.PENDING) "UNSOLVED" else question_status.name,

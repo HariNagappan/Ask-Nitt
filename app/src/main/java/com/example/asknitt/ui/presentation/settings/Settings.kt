@@ -1,33 +1,18 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.settings
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.MenuItemColors
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,11 +31,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.MainCoroutineDispatcher
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.AuthScreenRoutes
+import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.model.privacy_modes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun SettingsScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     val context= LocalContext.current
     var show_loading_screen by remember { mutableStateOf(false) }
 
@@ -59,7 +48,9 @@ fun SettingsScreen(mainViewModel: MainViewModel,navController: NavController,mod
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black)){
-        Column(modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding)),
+        Column(modifier=Modifier.fillMaxSize().align(Alignment.Center).padding(top=dimensionResource(
+            R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+            R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding)),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -85,7 +76,7 @@ fun SettingsScreen(mainViewModel: MainViewModel,navController: NavController,mod
     }
 }
 @Composable
-fun LogoutLoadingScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun LogoutLoadingScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     var success by remember { mutableStateOf(false) }
     var error_msg by remember { mutableStateOf("") }
     val context=LocalContext.current

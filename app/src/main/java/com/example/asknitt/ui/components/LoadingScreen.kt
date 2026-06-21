@@ -1,8 +1,6 @@
-package com.example.asknitt
+package com.example.asknitt.ui.components
 
-import android.os.Build
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.R
+import com.example.asknitt.data.model.AuthScreenRoutes
+import com.example.asknitt.data.model.MainScreenRoutes
 
 @Composable
 fun LoadingScreenWithRetry(inside_launched_effect:(onResult:(Boolean, String)->Unit)->Unit, navController: NavController, should_verify_exp_sign:Boolean, to_show_on_success:@Composable ()->Unit, modifier:Modifier=Modifier){
@@ -61,7 +62,8 @@ fun LoadingScreenWithRetry(inside_launched_effect:(onResult:(Boolean, String)->U
     }
     Box(modifier=Modifier.fillMaxSize()){
         if(!issuccess && msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
+            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(
+                R.color.electric_green))
         }
         else if (!issuccess && msg!=""){
             Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -123,7 +125,8 @@ fun LoadingScreenWithToast(inside_launched_effect: ((Boolean, String) -> Unit) -
     }
     Box(modifier=Modifier.fillMaxSize()){
         if(!issuccess && error_msg==""){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
+            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(
+                R.color.electric_green))
         }
         else if (!issuccess && error_msg!=""){
             Toast.makeText(LocalContext.current,error_msg, Toast.LENGTH_SHORT).show()

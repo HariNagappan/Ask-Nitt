@@ -1,7 +1,5 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.doubts
 
-import android.R.attr.fontFamily
-import android.content.Intent
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -27,14 +25,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -59,10 +55,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.util.FileCard
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.Answer
+import com.example.asknitt.data.model.AuthScreenRoutes
+import com.example.asknitt.data.model.BASE_URL
+import com.example.asknitt.data.model.Doubt
+import com.example.asknitt.data.model.GetUtcInLocalTime
+import com.example.asknitt.data.model.MAX_ANSWER_LENGTH
+import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.model.QuestionStatus
+import com.example.asknitt.ui.components.LoadingScreenWithToast
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: MainViewModel){
+fun ViewDoubtInDetail(doubt: Doubt, navController: NavController, mainViewModel: MainViewModel){
     //TODO add edit doubt later
     var should_show_post_answer by remember{mutableStateOf(false)}
     var scrollstate = rememberScrollState()
@@ -98,7 +106,9 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
             modifier= Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
-                .padding(top=dimensionResource(R.dimen.from_top_padding)*2,bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(top=dimensionResource(R.dimen.from_top_padding)*2,bottom=dimensionResource(
+                    R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(
+                    R.dimen.large_padding))
                 .verticalScroll(scrollstate)
         ) {
             Column(modifier=Modifier.fillMaxWidth(),
@@ -151,7 +161,8 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                 modifier=Modifier
                     .fillMaxWidth()
             )
-            Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.med_padding))) {
+            Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(dimensionResource(
+                R.dimen.med_padding))) {
                 Text(
                     text = "QUESTION:",
                     lineHeight = 36.sp,
@@ -222,8 +233,8 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                     )
                     doubt.paths.forEach { path ->
                         FileCard(
-                            filename=path.substringAfterLast('\\'),
-                            path = BASE_URL+"/"+ path,
+                            filename = path.substringAfterLast('\\'),
+                            path = BASE_URL + "/" + path,
                             bgcolor = colorResource(R.color.dark_gray)
                         )
                     }
@@ -299,7 +310,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
                     },
                     navController = navController,
                     onValueChanged = {new_text->
-                        if(new_text.length<=MAX_ANSWER_LENGTH) {
+                        if(new_text.length<= MAX_ANSWER_LENGTH) {
                             answer_text = new_text
                         }
                     }
@@ -308,23 +319,23 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
         }
         if(show_mark_as_solved){
             LoadingScreenWithToast(
-                inside_launched_effect = {onResult->
+                inside_launched_effect = { onResult ->
                     mainViewModel.MarkQuestionAsSolved(
                         question_id = doubt.question_id,
-                        onFinish = {success,msg->
-                            onResult(success,msg)
+                        onFinish = { success, msg ->
+                            onResult(success, msg)
                         }
                     )
                 },
-                navController=navController,
+                navController = navController,
                 success_message = "Marked Question as Solved",
                 should_show_success_toast = true,
                 onSuccess = {
-                    doubt.status= QuestionStatus.SOLVED
-                    show_mark_as_solved=false
+                    doubt.status = QuestionStatus.SOLVED
+                    show_mark_as_solved = false
                 },
                 onFailure = {
-                    show_mark_as_solved=false
+                    show_mark_as_solved = false
                 }
             )
         }
@@ -332,7 +343,7 @@ fun ViewDoubtInDetail(doubt: Doubt, navController: NavController,mainViewModel: 
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavController){
+fun AnswerCard(answer: Answer, mainViewModel: MainViewModel, navController: NavController){
     Card(
         colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray)),
         modifier=Modifier
@@ -363,9 +374,9 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavCo
                     )
                     answer.paths.forEach { path ->
                         FileCard(
-                            filename=path.substringAfterLast('\\'),
-                            path = BASE_URL+"/"+ path,
-                            bgcolor=colorResource(R.color.super_dark_gray)
+                            filename = path.substringAfterLast('\\'),
+                            path = BASE_URL + "/" + path,
+                            bgcolor = colorResource(R.color.super_dark_gray)
                         )
                     }
                 }
@@ -395,7 +406,7 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel,navController: NavCo
     }
 }
 @Composable
-fun UpvoteDownVote(answer_id:Int,upvotes:Int,downvotes:Int,mainViewModel: MainViewModel,navController: NavController,modifier:Modifier=Modifier){
+fun UpvoteDownVote(answer_id:Int, upvotes:Int, downvotes:Int, mainViewModel: MainViewModel, navController: NavController, modifier:Modifier=Modifier){
     var is_upvoted by remember { mutableStateOf(false) }
     var is_downvoted by remember { mutableStateOf(false) }
     var total_upvotes by remember { mutableStateOf(upvotes) }

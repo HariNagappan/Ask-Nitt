@@ -1,6 +1,5 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.home
 
-import android.R.attr.top
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -39,10 +38,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.asknitt.ui.presentation.doubts.DoubtCard
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.AuthScreenRoutes
+import com.example.asknitt.data.model.MainScreenRoutes
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun HomeScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black))
@@ -52,7 +56,8 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
             modifier=Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
+                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+                    R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))) {
             Text(
                 text="WELCOME ${mainViewModel.username}",
                 fontSize = 24.sp,
@@ -104,7 +109,7 @@ fun HomeScreen(mainViewModel: MainViewModel,navController: NavController,modifie
     }
 }
 @Composable
-fun HomeScreenIntermediate(mainViewModel: MainViewModel,navController: NavController){
+fun HomeScreenIntermediate(mainViewModel: MainViewModel, navController: NavController){
     var retrycount by remember { mutableStateOf(0) }
     var issuccess1 by remember { mutableStateOf(false) }
     var error_msg1 by remember { mutableStateOf("") }
@@ -138,7 +143,8 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel,navController: NavContro
     }
     Box(modifier=Modifier.fillMaxSize()){
         if(!(issuccess1 && issuccess2) && (error_msg1=="" && error_msg2=="")){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
+            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(
+                R.color.electric_green))
         }
         else if (!(issuccess1 && issuccess2)){//(error_msg1!="" || error_msg2!="") is always true
             Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {

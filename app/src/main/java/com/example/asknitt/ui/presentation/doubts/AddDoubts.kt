@@ -1,10 +1,7 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.doubts
 
-import android.content.Context
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -29,15 +26,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -58,7 +51,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -67,12 +59,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
+import com.example.asknitt.util.FileUploadCard
+import com.example.asknitt.util.GetFileNameFromUri
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.util.UriToMultipart
+import com.example.asknitt.data.model.MAX_QUESTION_LENGTH
+import com.example.asknitt.data.model.MAX_TAG_LENGTH
+import com.example.asknitt.data.model.MAX_TITLE_LENGTH
+import com.example.asknitt.data.model.UploadFileItem
+import com.example.asknitt.ui.components.CustomOutlineTextField
+import com.example.asknitt.ui.components.LoadingScreenWithToast
+import com.example.asknitt.ui.components.SearchTextField
+import com.example.asknitt.ui.presentation.auth.ErrorDialogDismissOnly
 
 @Composable
-fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,modifier: Modifier=Modifier){
+fun AddDoubtScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
     val context=LocalContext.current
 
 
@@ -98,7 +100,15 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
         contract = ActivityResultContracts.GetMultipleContents()
     ){uris:List<Uri>->
         uris.forEach{uri->
-            mainViewModel.doubt_files.add(UploadFileItem(multipartBody = UriToMultipart(partName="files",context=context,uri=uri),filename=GetFileNameFromUri(context=context,uri=uri)))
+            mainViewModel.doubt_files.add(
+                UploadFileItem(
+                    multipartBody = UriToMultipart(
+                        partName = "files",
+                        context = context,
+                        uri = uri
+                    ), filename = GetFileNameFromUri(context = context, uri = uri)
+                )
+            )
         }
     }
     LaunchedEffect(question_text) {
@@ -162,13 +172,14 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                 CustomOutlineTextField(
                     cur_text = title_text,
                     enabled = can_edit_title,
-                    singleLine=true,
-                    onValueChanged = {new_text->
-                        if(new_text.length<=MAX_TITLE_LENGTH){
-                            title_text=new_text
+                    singleLine = true,
+                    onValueChanged = { new_text ->
+                        if (new_text.length <= MAX_TITLE_LENGTH) {
+                            title_text = new_text
                         }
                     },
-                    modifier=Modifier.fillMaxWidth())
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -181,16 +192,18 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
                 CustomOutlineTextField(
                     cur_text = question_text,
                     enabled = can_edit_question,
-                    singleLine=false,
-                    onValueChanged = {new_text->
-                        if(new_text.length<=MAX_QUESTION_LENGTH){
-                            question_text=new_text
+                    singleLine = false,
+                    onValueChanged = { new_text ->
+                        if (new_text.length <= MAX_QUESTION_LENGTH) {
+                            question_text = new_text
                         }
                     },
-                    modifier=Modifier.fillMaxWidth())
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.small_padding)),modifier=Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dimensionResource(
+                    R.dimen.small_padding)),modifier=Modifier.fillMaxWidth()) {
                     Text(
                         text = "TAGS",
                         fontSize = 16.sp,
@@ -330,7 +343,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
             title = "Error",
             body = "Please enter a valid question and title",
             onDismiss = {
-                show_title_question_error_dialog=false
+                show_title_question_error_dialog = false
             }
         )
     }
@@ -339,7 +352,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
             title = "Error",
             body = "Please enter a valid title",
             onDismiss = {
-                show_title_error_dialog=false
+                show_title_error_dialog = false
             }
         )
     }
@@ -348,7 +361,7 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
             title = "Error",
             body = "Please enter a valid question",
             onDismiss = {
-                show_question_error_dialog=false
+                show_question_error_dialog = false
             }
         )
     }
@@ -358,26 +371,26 @@ fun AddDoubtScreen(mainViewModel: MainViewModel,navController: NavController,mod
         can_edit_question=false
         can_edit_tags=false
         LoadingScreenWithToast(
-            inside_launched_effect = {onResult->
+            inside_launched_effect = { onResult ->
                 mainViewModel.PostUserDoubt(
-                    title=title_text,
-                    question=question_text,
-                    onFinish = {success,msg->
-                        onResult(success,msg)
+                    title = title_text,
+                    question = question_text,
+                    onFinish = { success, msg ->
+                        onResult(success, msg)
                     }
                 )
             },
-            navController=navController,
+            navController = navController,
             should_show_success_toast = true,
             success_message = "Successfully Posted Question",
             onSuccess = {
                 navController.navigateUp()//alreasy cleared question tags in miainviewmodel.PostUserDoubt
-                Log.d("apisuccess","from AddDoubtScreen: success posting question")
-                should_show_intermediate_screen=false
+                Log.d("apisuccess", "from AddDoubtScreen: success posting question")
+                should_show_intermediate_screen = false
             },
             onFailure = {
                 Log.d("apifailure", "from AddDoubtScreen: error posting question")
-                post_question_enabled=true
+                post_question_enabled = true
                 should_show_intermediate_screen = false
                 can_edit_title = true
                 can_edit_question = true

@@ -1,19 +1,8 @@
-package com.example.asknitt
+package com.example.asknitt.ui.presentation.auth
 
-import android.R.attr.x
-import android.app.ProgressDialog.show
-import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,8 +24,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,13 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -61,18 +45,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.asknitt.ErrorDialogDismissOnly
-import okhttp3.internal.userAgent
-import retrofit2.Call
-import retrofit2.Response
-import retrofit2.Callback
-import kotlin.contracts.contract
-import kotlin.math.log
+import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.R
+import com.example.asknitt.data.model.AuthScreenRoutes
+import com.example.asknitt.data.model.LoginType
+import com.example.asknitt.data.model.MainScreenRoutes
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel: MainViewModel ,modifier: Modifier=Modifier){
+fun LoginScreen(navController: NavController, loginType: LoginType, mainViewModel: MainViewModel, modifier: Modifier=Modifier){
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var password_visible by remember { mutableStateOf(false) }
@@ -93,7 +75,8 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
+                    R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
         ) {
             Text(
                 text="ASK NITT",
@@ -219,7 +202,8 @@ fun LoginScreen(navController: NavController,loginType: LoginType,mainViewModel:
                onDismiss = {show_check_internet_dialog=false})
        }
         if(show_progress_indicator){
-            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(R.color.electric_green))
+            CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(
+                R.color.electric_green))
             LoginSignupIntermediate(
                 onLaunch = {
                     if(loginType== LoginType.LOGIN){
