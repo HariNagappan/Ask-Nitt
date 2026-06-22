@@ -8,405 +8,203 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
-import com.example.asknitt.data.model.AllScreensNamesItem
-import com.example.asknitt.data.model.AuthScreenRoutes
+import androidx.security.crypto.MasterKey
+import com.example.asknitt.data.local.AppDatabase
 import com.example.asknitt.data.model.Doubts
 import com.example.asknitt.data.model.GeneralUser
-import com.example.asknitt.data.model.JWT_TOKEN
-import com.example.asknitt.data.model.LoginType
-import com.example.asknitt.data.model.MainScreenRoutes
-import com.example.asknitt.data.model.SHARED_PREFS_FILENAME_ENCRYPTED
+import com.example.asknitt.data.JWT_TOKEN
+import com.example.asknitt.data.LoginType
+import com.example.asknitt.data.SHARED_PREFS_FILENAME_ENCRYPTED
+import com.example.asknitt.data.remote.api
+import com.example.asknitt.data.repository.*
+import com.example.asknitt.data.routes.AuthScreenRoutes
+import com.example.asknitt.data.routes.MainScreenRoutes
+import com.example.asknitt.ui.components.CustomBottomNavigationBar
 import com.example.asknitt.ui.components.LoadingScreenWithRetry
+import com.example.asknitt.ui.presentation.ai.AiChatScreen
 import com.example.asknitt.ui.presentation.auth.LoginScreen
-import com.example.asknitt.ui.presentation.doubts.AddDoubtScreen
-import com.example.asknitt.ui.presentation.doubts.DoubtsScreen
-import com.example.asknitt.ui.presentation.doubts.ViewDoubtInDetail
+import com.example.asknitt.ui.presentation.doubts.*
 import com.example.asknitt.ui.presentation.home.HomeScreenIntermediate
 import com.example.asknitt.ui.presentation.search.SearchScreen
 import com.example.asknitt.ui.presentation.settings.SettingsScreen
-import com.example.asknitt.ui.presentation.social.ExploreUsersHome
-import com.example.asknitt.ui.presentation.social.FriendRequests
-import com.example.asknitt.ui.presentation.social.Friends
-import com.example.asknitt.ui.presentation.social.ViewUserInDetail
+import com.example.asknitt.ui.presentation.social.*
 import com.example.asknitt.ui.theme.AskNITTTheme
-import com.example.asknitt.viewmodels.MainViewModel
+import com.example.asknitt.viewmodels.*
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        WindowCompat.setDecorFitsSystemWindows(window,false)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         val windowInsetsController = WindowInsetsControllerCompat(window, window.decorView)
         windowInsetsController.isAppearanceLightStatusBars = false
+        
+        loadJwtToken(this)
+
         setContent {
             AskNITTTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-                    NavigationScreen(modifier=Modifier.padding(padding))
-                    Get_JWT_Token_From_Preferences(context = LocalContext.current)
+                Scaffold(modifier = Modifier.fillMaxSize(), containerColor = Color.Black) { padding ->
+                    NavigationScreen(modifier = Modifier.padding(padding))
                 }
             }
         }
     }
+
+    private fun loadJwtToken(context: Context) {
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            val prefs = EncryptedSharedPreferences.create(
+                context,
+                SHARED_PREFS_FILENAME_ENCRYPTED,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            JWT_TOKEN = prefs.getString("JWTToken", "") ?: ""
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to load token", e)
+            JWT_TOKEN = ""
+        }
+    }
 }
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun NavigationScreen(mainViewModel: MainViewModel = viewModel(), navController: NavHostController= rememberNavController(), modifier: Modifier) {
+fun NavigationScreen(navController: NavHostController = rememberNavController(), modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    
+    val database = remember { AppDatabase.getDatabase(context) }
+    val doubtRepository = remember { DoubtRepository(api, database.doubtDao(), database.searchExploreDao()) }
+    val userRepository = remember { UserRepository(api, database.userDao()) }
+    val socialRepository = remember { SocialRepository(api, database.socialDao(), database.searchExploreDao()) }
+    val answerRepository = remember { AnswerRepository(api, database.answerDao()) }
+    val aiChatRepository = remember { AiChatRepository(api, database.aiChatDao()) }
+    
+    val factory = MainViewModelFactory(doubtRepository, userRepository, socialRepository, answerRepository, aiChatRepository)
+    
+    val mainViewModel: MainViewModel = viewModel(factory = factory)
+    val doubtsViewModel: DoubtsViewModel = viewModel(factory = factory)
+    val answerViewModel: AnswerViewModel = viewModel(factory = factory)
+    val exploreViewModel: ExploreViewModel = viewModel(factory = factory)
+    val aiViewModel: AiViewModel = viewModel(factory = factory)
+
     Scaffold(
         containerColor = Color.Black,
-        bottomBar = {
-                CustomBottomNavigationBar(
-                    mainViewModel = mainViewModel,
-                    navController = navController
-                )
-            }
-    )
-    {
+        bottomBar = { CustomBottomNavigationBar(navController = navController) }
+    ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = if(JWT_TOKEN =="") AuthScreenRoutes.AUTH.name else MainScreenRoutes.MAIN.name,
+            startDestination = if (JWT_TOKEN == "") AuthScreenRoutes.AUTH.name else MainScreenRoutes.MAIN.name,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = it.calculateBottomPadding())
-                .background(colorResource(R.color.black))
-        ) {//.then(modifier)
-            navigation(
-                startDestination = AuthScreenRoutes.LOGIN.name,
-                route = AuthScreenRoutes.AUTH.name
-            ) {
-                composable(route = AuthScreenRoutes.LOGIN.name) {
-                    LoginScreen(
-                        loginType = LoginType.LOGIN,
-                        navController = navController,
-                        mainViewModel = mainViewModel
-                    )
-                }
-                composable(route = AuthScreenRoutes.SIGN_UP.name) {
-                    LoginScreen(
-                        loginType = LoginType.SIGN_UP,
-                        navController = navController,
-                        mainViewModel = mainViewModel
-                    )
-                }
+                .padding(bottom = paddingValues.calculateBottomPadding())
+                .background(Color.Black)
+        ) {
+            navigation(startDestination = AuthScreenRoutes.LOGIN.name, route = AuthScreenRoutes.AUTH.name) {
+                composable(AuthScreenRoutes.LOGIN.name) { LoginScreen(navController,LoginType.LOGIN, mainViewModel) }
+                composable(AuthScreenRoutes.SIGN_UP.name) { LoginScreen(navController,LoginType.SIGN_UP, mainViewModel) }
             }
-            navigation(
-                startDestination = MainScreenRoutes.HOME.name,
-                route = MainScreenRoutes.MAIN.name
-            ) {
-                composable(MainScreenRoutes.HOME.name) {
-                    HomeScreenIntermediate(
-                        mainViewModel = mainViewModel,
-                        navController = navController
-                    )
-                }
-                composable(MainScreenRoutes.SETTINGS.name) {
-                    SettingsScreen(navController = navController, mainViewModel = mainViewModel)
-                }
-                navigation(
-                    startDestination = MainScreenRoutes.MY_DOUBTS_LIST.name,
-                    route = MainScreenRoutes.MY_DOUBTS.name
-                ) {
+
+            navigation(startDestination = MainScreenRoutes.HOME.name, route = MainScreenRoutes.MAIN.name) {
+                composable(MainScreenRoutes.HOME.name) { HomeScreenIntermediate(mainViewModel,doubtsViewModel, navController) }
+                composable(MainScreenRoutes.SETTINGS.name) { SettingsScreen(mainViewModel, navController) }
+
+                navigation(startDestination = MainScreenRoutes.MY_DOUBTS_LIST.name, route = MainScreenRoutes.MY_DOUBTS.name) {
                     composable(MainScreenRoutes.MY_DOUBTS_LIST.name) {
                         LoadingScreenWithRetry(
                             inside_launched_effect = { onResult ->
-                                mainViewModel.GetDoubtsByUsername(
-                                    username = mainViewModel.username,
-                                    onFinish = { success, msg ->
-                                        onResult(success, msg)
-                                    }
-                                )
+                                doubtsViewModel.getDoubtsByUsername("", mainViewModel.username, onResult)
                             },
                             navController = navController,
-                            should_verify_exp_sign = false,
-                            to_show_on_success = {
-                                DoubtsScreen(
-                                    mainViewModel = mainViewModel,
-                                    navController = navController
-                                )
-                            }
+                            to_show_on_success = { DoubtsScreen(doubtsViewModel, navController) }
                         )
                     }
                     composable(MainScreenRoutes.ADD_DOUBT.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = { onResult ->
-                                mainViewModel.GetTags(
-                                    onFinish = { success, new_msg ->
-                                        onResult(success, new_msg)
-                                    })
-                            },
+                            inside_launched_effect = { onResult -> doubtsViewModel.getTags(onResult) },
                             should_verify_exp_sign = true,
                             navController = navController,
                             to_show_on_success = {
-                                mainViewModel.ClearDoubtFiles()
-                                AddDoubtScreen(
-                                    mainViewModel = mainViewModel,
-                                    navController = navController
-                                )
+                                doubtsViewModel.clearDoubtFiles()
+                                AddDoubtScreen(doubtsViewModel, navController,mainViewModel)
                             }
                         )
                     }
-//                    composable<Doubt> {
-//                        val doubt=it.toRoute<Doubt>()
-//                        ViewDoubtInDetailIntermediate(doubt=doubt,navController=navController,mainViewModel=mainViewModel)
-//                    }
                 }
-                navigation(
-                    startDestination = MainScreenRoutes.SEARCH.name,
-                    route = MainScreenRoutes.SEARCH_STUFF.name
-                ) {
+
+                navigation(startDestination = MainScreenRoutes.SEARCH.name, route = MainScreenRoutes.SEARCH_STUFF.name) {
                     composable(MainScreenRoutes.SEARCH.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = { onResult ->
-                                mainViewModel.GetTags(
-                                    onFinish = { success, msg ->
-                                        onResult(success, msg)
-                                    }
-                                )
-                            },
-                            should_verify_exp_sign = false,
+                            inside_launched_effect = { onResult -> doubtsViewModel.getTags(onResult) },
                             navController = navController,
-                            to_show_on_success = {
-                                SearchScreen(
-                                    mainViewModel = mainViewModel,
-                                    navController = navController
-                                )
-                            }
+                            to_show_on_success = { SearchScreen(navController, doubtsViewModel) }
                         )
                     }
                 }
-                navigation(
-                    startDestination = MainScreenRoutes.EXPLORE_USERS_HOME.name,
-                    route= MainScreenRoutes.EXPLORE_USERS_STUFF.name) {
+
+                navigation(startDestination = MainScreenRoutes.EXPLORE_USERS_HOME.name, route = MainScreenRoutes.EXPLORE_USERS_STUFF.name) {
                     composable(MainScreenRoutes.EXPLORE_USERS_HOME.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = { onResult ->
-                                mainViewModel.GetUsersByName(
-                                    username_search_text = "",
-                                    onFinish = { success, error_msg ->
-                                        onResult(success, error_msg)
-                                    })
-                            },
+                            inside_launched_effect = { onResult -> exploreViewModel.getUsersByName("", onResult) },
                             should_verify_exp_sign = true,
                             navController = navController,
-                            to_show_on_success = {
-                                ExploreUsersHome(
-                                    mainViewModel = mainViewModel,
-                                    navController = navController
-                                )
-                            }
+                            to_show_on_success = { ExploreUsersHome(exploreViewModel, navController) }
                         )
                     }
                     composable(MainScreenRoutes.FRIENDS.name) {
                         LoadingScreenWithRetry(
-                            inside_launched_effect = { onResult ->
-                                mainViewModel.GetUserFriends(
-                                    onFinish = { success, msg ->
-                                        onResult(success, msg)
-                                    }
-                                )
-                            },
+                            inside_launched_effect = { onResult -> exploreViewModel.getUserFriends(onResult) },
                             navController = navController,
-                            should_verify_exp_sign = true,
-                            to_show_on_success = {
-                                Friends(
-                                    mainViewModel = mainViewModel,
-                                    navController = navController
-                                )
-                            }
+                            to_show_on_success = { Friends(exploreViewModel, navController) }
                         )
                     }
-                    composable(MainScreenRoutes.FRIEND_REQUESTS.name) {
-                        FriendRequests(mainViewModel = mainViewModel, navController = navController)
-                    }
+                    composable(MainScreenRoutes.FRIEND_REQUESTS.name) { FriendRequests(exploreViewModel, navController) }
+                }
+
+                navigation(startDestination = MainScreenRoutes.AICHAT_HOME.name, route = MainScreenRoutes.AICHAT.name) {
+                    composable(MainScreenRoutes.AICHAT_HOME.name) { AiChatScreen(navController, aiViewModel) }
                 }
             }
 
-            composable<Doubts> {
-                val doubt=it.toRoute<Doubts>()
+            composable<Doubts> { backStackEntry ->
+                val doubt = backStackEntry.toRoute<Doubts>()
                 LoadingScreenWithRetry(
-                    inside_launched_effect = { onResult ->
-                        mainViewModel.GetAnswersByQuestionId(
-                            question_id = doubt.question_id,
-                            onFinish = { success, new_msg ->
-                                onResult(success, new_msg)
-                            })
-                    },
-                    should_verify_exp_sign = false,
+                    inside_launched_effect = { onResult -> answerViewModel.getAnswersByQuestionId(doubt.question_id, onResult) },
                     navController = navController,
-                    to_show_on_success = {
-                        ViewDoubtInDetail(
-                            doubt = doubt,
-                            navController = navController,
-                            mainViewModel = mainViewModel
-                        )
-                    }
+                    to_show_on_success = { ViewDoubtInDetail(doubt, navController, mainViewModel, doubtsViewModel,answerViewModel ) }
                 )
             }
-            composable<GeneralUser>{
-                val generalUser=it.toRoute<GeneralUser>()
+
+            composable<GeneralUser> { backStackEntry ->
+                val user = backStackEntry.toRoute<GeneralUser>()
                 LoadingScreenWithRetry(
-                    inside_launched_effect = { onResult ->
-                        mainViewModel.GetOtherUserInfo(
-                            other_username = generalUser.username,
-                            onFinish = { success, msg ->
-                                onResult(success, msg)
-                            }
-                        )
-                    },
-                    should_verify_exp_sign = true,
+                    inside_launched_effect = { onResult -> exploreViewModel.getOtherUserInfo(user.username, onResult) },
                     navController = navController,
-                    to_show_on_success = {
-                        Log.d(
-                            "general",
-                            "mainviewmodel.other_user:${mainViewModel.other_user_info}"
-                        )
-                        ViewUserInDetail(
-                            mainViewModel = mainViewModel,
-                            navController = navController
-                        )
-                    }
-                )
-
-            }
-        }
-    }
-}
-@Composable
-fun CustomBottomNavigationBar(mainViewModel: MainViewModel, navController: NavHostController){
-    val entries =GetBottomBarEntries()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.hierarchy
-
-    if(currentRoute?.any{it.route== MainScreenRoutes.MAIN.name }==true) {
-        NavigationBar(
-            containerColor = colorResource(R.color.black),
-            tonalElevation = 10.dp,
-            modifier = Modifier.height(100.dp)
-        ) {
-            entries.forEachIndexed { idx, entry ->
-                val isselected=currentRoute.any { it.route == entry.route } == true
-                NavigationBarItem(
-                    selected = isselected,
-                    onClick = {//TODO bug input some text in post doubt screen and go to settings and come back-> all ok no problem, it is restored, but if i go to settings and click settings again, and come back to my-doubt, the text is not there,
-                            navController.navigate(entry.route) {
-                                launchSingleTop = true
-                                restoreState = true
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                            }
-                    },
-                    icon = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = entry.icon,
-                                contentDescription = null,
-                                tint = colorResource(if (isselected) R.color.electric_green else R.color.white),
-                            )
-                            AnimatedVisibility(visible = isselected) {
-                                Text(
-                                    text = entry.label.uppercase(),
-                                    color = colorResource(R.color.electric_green),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    },
-                    colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+                    to_show_on_success = { ViewUserInDetail(exploreViewModel, navController) }
                 )
             }
         }
-    }
-}
-
-fun GetBottomBarEntries():List<AllScreensNamesItem>{
-    return listOf(
-        AllScreensNamesItem(
-            route = MainScreenRoutes.HOME.name,
-            label = "Home",
-            icon = Icons.Default.Home
-        ),
-        AllScreensNamesItem(
-            route = MainScreenRoutes.MY_DOUBTS.name,
-            label = "My Doubts",
-            icon = Icons.AutoMirrored.Filled.Assignment
-        ),
-        AllScreensNamesItem(
-            route = MainScreenRoutes.SEARCH_STUFF.name,
-            label = "Search",
-            icon = Icons.Default.Search
-        ),
-        AllScreensNamesItem(
-            route = MainScreenRoutes.EXPLORE_USERS_STUFF.name,
-            label = "Explore",
-            icon = Icons.Default.People
-        ),
-        AllScreensNamesItem(
-            route = MainScreenRoutes.SETTINGS.name,
-            label = "Settings",
-            icon = Icons.Default.Settings
-        )
-
-    )
-}
-
-fun Get_JWT_Token_From_Preferences(context: Context) {
-    try {
-        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        val prefs = EncryptedSharedPreferences.create(
-            SHARED_PREFS_FILENAME_ENCRYPTED,
-            masterKeyAlias,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-        JWT_TOKEN = prefs.getString("JWTToken", "") ?: ""
-    } catch (e: Exception) {
-        Log.e("general", "Failed to read token. Deleting prefs.", e)
-        context.deleteSharedPreferences(SHARED_PREFS_FILENAME_ENCRYPTED)
-        JWT_TOKEN = ""
     }
 }

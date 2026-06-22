@@ -29,11 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.asknitt.R
-import com.example.asknitt.data.model.AuthScreenRoutes
-import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.routes.AuthScreenRoutes
+import com.example.asknitt.data.routes.MainScreenRoutes
 
 @Composable
-fun LoadingScreenWithRetry(inside_launched_effect:(onResult:(Boolean, String)->Unit)->Unit, navController: NavController, should_verify_exp_sign:Boolean, to_show_on_success:@Composable ()->Unit, modifier:Modifier=Modifier){
+fun LoadingScreenWithRetry(inside_launched_effect:(onResult:(Boolean, String)->Unit)->Unit, navController: NavController, should_verify_exp_sign:Boolean=false, to_show_on_success:@Composable ()->Unit, modifier:Modifier=Modifier){
     var issuccess by remember{ mutableStateOf(false) }
     var msg by remember{ mutableStateOf("") }
     var retry_number by remember{mutableStateOf(0)}

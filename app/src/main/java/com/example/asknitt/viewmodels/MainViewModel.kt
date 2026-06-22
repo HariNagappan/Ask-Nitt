@@ -2,824 +2,150 @@ package com.example.asknitt.viewmodels
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
-import com.example.asknitt.data.model.Answer
-import com.example.asknitt.data.model.Doubts
-import com.example.asknitt.data.model.GeneralUser
-import com.example.asknitt.data.model.GetLocalInUTC
-import com.example.asknitt.data.model.GetUtcInLocalTime
-import com.example.asknitt.data.model.JWT_TOKEN
-import com.example.asknitt.data.model.MULTIPARTBODY_FILE_KEY
-import com.example.asknitt.data.model.MarkQuestionSolvedItem
-import com.example.asknitt.data.model.OtherUserInfo
-import com.example.asknitt.data.model.PostAnswerToDoubtItem
-import com.example.asknitt.data.model.PostDoubtItem
-import com.example.asknitt.data.model.QuestionStatus
-import com.example.asknitt.data.model.SHARED_PREFS_FILENAME_ENCRYPTED
-import com.example.asknitt.data.model.UploadFileItem
-import com.example.asknitt.data.model.User
+import androidx.security.crypto.MasterKey
+import com.example.asknitt.data.functions.GetUtcInLocalTime
+import com.example.asknitt.data.model.*
+import com.example.asknitt.data.*
 import com.example.asknitt.data.remote.api
+import com.example.asknitt.data.remote.UpdateVisibilityRequest
+import com.example.asknitt.data.repository.*
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import okhttp3.MultipartBody
-import java.time.LocalDate
 
 @SuppressLint("NewApi")
-class MainViewModel: ViewModel() {
+class MainViewModel(
+    private val doubtRepository: DoubtRepository,
+    private val userRepository: UserRepository,
+    private val socialRepository: SocialRepository,
+    private val answerRepository: AnswerRepository
+) : ViewModel() {
     var username by mutableStateOf("")
         private set
     var password by mutableStateOf("")
         private set
 
-//    private val _uistate= MutableStateFlow<UiState>(UiState.Loading)
-//    val uistate: StateFlow<UiState> = _uistate
-    var search_question_text=""
+    val currentUserInfo: StateFlow<CurrentUserInfo?> = userRepository.cachedUserInfo.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
 
-    val all_users:MutableList<GeneralUser> = mutableStateListOf()
-    var other_user_info: OtherUserInfo?=null
+    var userQuestionsAsked by mutableIntStateOf(0)
+    var userQuestionsHelped by mutableIntStateOf(0)
+    var joinedOn by mutableStateOf("")
+    var profileVisibility by mutableStateOf(ProfileVisibility.PUBLIC)
 
-
-    var user_doubts: MutableList<Doubts> = mutableStateListOf()
-    var recent_doubts: MutableList<Doubts> = mutableStateListOf()
-    var filtered_doubts:MutableList<Doubts> = mutableStateListOf()
-
-    var users_friends:MutableList<GeneralUser> = mutableStateListOf()
-    var user_friend_requests_recieved:MutableList<GeneralUser> = mutableStateListOf()
-    var user_friend_requests_sent:MutableList<GeneralUser> = mutableStateListOf()
-
-
-    val tags: MutableList<String> = mutableStateListOf()
-    var cur_question_tags: MutableList<String> = mutableStateListOf()
-    var search_question_tags: MutableList<String> = mutableStateListOf()
-
-    var cur_question_answers: MutableList<Answer> = mutableStateListOf()
-    var user_questions_asked by mutableStateOf(0)
-    var user_questions_helped by mutableStateOf(0)
-
-    var from_date by mutableStateOf(LocalDate.now())
-    var to_date by mutableStateOf(LocalDate.now())
-    var joined_on by mutableStateOf("")
-    var should_date_filter by mutableStateOf(false)
-
-    var status_doubt_filter by mutableStateOf(QuestionStatus.ANY)
-    val doubt_files:MutableList<UploadFileItem> = mutableStateListOf()
-    val answer_files:MutableList<UploadFileItem> = mutableStateListOf()
-
-    fun SetUsername(new_username: String) {
-        username = new_username
-    }
-    fun SetPassword(new_password: String) {
-        password = new_password
-    }
-
-    fun GetHomeScreenStuff(onFinishUserUnfo: (Boolean, String) -> Unit,onFinishRecentDoubts: (Boolean, String) -> Unit){
-        GetCurrentUserInfo(onFinish = {success,msg->
-            onFinishUserUnfo(success,msg)
-        })
-        GetRecentDoubts(onFinish = {success,msg->
-            onFinishRecentDoubts(success,msg)
-        })
-    }
-
-    fun LoginUser(context: Context, onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-                    val response = api.Login(User(username = username, password = password))
-                    if (response.isSuccessful) {
-                        val data = response.body()
-                        if (data != null) {
-                            JWT_TOKEN = data.token
-                            if (JWT_TOKEN != "") {
-                                SaveJWTToken(context = context)
-                                Log.d("apisuccess", "From LoginUser():${data.msg}")
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, data.msg)
-                            }
-                        }
-                    } else {
-                        Log.d("apifailure", "From LoginUser():${response.message()}")
-                        onFinish(false, response.message())
-                    }
-                }
-                catch (e: Exception) {
-                    Log.d("apifailure", "From LoginUser():${e.message}")
-                    onFinish(false, e.message.toString())
+    init {
+        viewModelScope.launch {
+            currentUserInfo.collectLatest { info ->
+                if (info != null) {
+                    username = info.username
+                    userQuestionsAsked = info.questions_asked
+                    userQuestionsHelped = info.people_helped
+                    joinedOn = GetUtcInLocalTime(info.joined_on)
+                    profileVisibility = info.profile_visibility
                 }
             }
-    }
-    fun SignUpUser(context: Context, onFinish: (Boolean, String) -> Unit) {
-            viewModelScope.launch {
-                try {
-                    val response = api.SignUp(User(username = username, password = password))
-                    if (response.isSuccessful) {
-                        val data = response.body()
-                        if (data != null) {
-                            if (data.token == "") {
-                                onFinish(false, "Username already exists")
-                            } else {
-                                JWT_TOKEN = data.token
-                                SaveJWTToken(context = context)
-                                Log.d("apisuccess", "From RegisterNewUser():${data.msg}")
-                                onFinish(true, "")
-                            }
-                        }
-                    } else {
-                        Log.d("apifailure", "From RegisterNewUser():${response.message()}")
-                        onFinish(false, response.message())
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From RegisterNewUser():${e.message}")
-                    onFinish(false, e.message.toString())
-                }
-            }
-    }
-    fun Logout(context: Context, onFinish: (Boolean, String) -> Unit){
-        DeleteJWTToken(context=context)
-        onFinish(true,"")
-    }
-    fun GetCurrentUserInfo(onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-                    val response = api.GetCurrentUserInfo()
-                    if (response.isSuccessful) {
-                        val info = response.body()
-                        if (info != null) {
-                            if (info.error_msg == "" || info.error_msg == null) {
-                                user_questions_asked = info.questions_asked
-                                user_questions_helped = info.people_helped
-                                username = info.username
-                                joined_on = GetUtcInLocalTime(info.joined_on)
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, info.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "Error, could not fetch info")
-                        }
-                    } else {
-                        Log.d(
-                            "apifailure",
-                            "this is from GetCurrentUserInfo(), ${response.message()}"
-                        )
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                }
-                catch (e: Exception){
-                    Log.d("apifailure","this is from GetCurrentUserInfo(), ${e.message}")
-                    onFinish(false,"Error:${e.message}")
-                }
-            }
-    }
-    fun GetUsersByName(username_search_text:String, onFinish: (Boolean, String) -> Unit){
-
-            viewModelScope.launch {
-                try {
-                    val response = api.GetUsersByName(username_search_text = username_search_text)
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        all_users.clear()
-                        if (lst != null) {
-                            all_users.addAll(lst)
-                            onFinish(true, "")
-                        } else {
-                            onFinish(false, "Error,Could not fetch users data")
-                        }
-                    } else {
-                        Log.d("apifailure", "this is from GetUsersByName(), ${response.message()}")
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "this is from GetUsersByName(), ${e.message}")
-                    onFinish(false, "Error:${e.message}")
-                }
-            }
-    }
-    fun GetOtherUserInfo(other_username:String, onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-                    val response = api.GetOtherUserInfo(other_username = other_username)
-                    if (response.isSuccessful) {
-                        val info = response.body()
-                        if (info != null) {
-                            if (info.error_msg == "" || info.error_msg == null) {
-                                other_user_info = info
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, info.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "Error, could not fetch info")
-                        }
-                    } else {
-                        onFinish(false, "${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "this is from GetOtherOtherUserInfo(), ${e.message}")
-                    onFinish(false, "Error:${e.message}")
-                }
-            }
+        }
     }
 
-    fun GetDoubtsByUsername(username:String, onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-
-                    val response = api.GetDoubts(username)
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        user_doubts.clear()
-                        if (lst != null) {
-                            user_doubts.addAll(lst)
-                            onFinish(true, "")
-                            Log.d(
-                                "apisuccess",
-                                "this is from GetUserDoubts(), Successfully got user doubts,$user_doubts"
-                            )
-                        } else {
-                            Log.d(
-                                "apifailure",
-                                "this is from GetUserDoubts(), message:response.body is empty"
-                            )
-                            onFinish(false, response.message())
-                        }
-                    } else {
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    onFinish(false, "${e.message}")
-                }
-            }
+    fun updateUsername(n: String) { username = n }
+    fun updatePassword(p: String) { password = p }
+    
+    fun getHomeScreenStuff(o1: (Boolean, String) -> Unit, o2: (Boolean, String) -> Unit) {
+        getCurrentUserInfo { s, m -> o1(s, m) }
     }
-    fun PostUserDoubt(title:String, question:String,onFinish: (Boolean, String) -> Unit){
+    
+    fun getCurrentUserInfo(onFinish: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val result = userRepository.refreshCurrentUserInfo()
+            onFinish(result.isSuccess || currentUserInfo.value != null, "")
+        }
+    }
+
+    fun loginUser(context: Context, onFinish: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             try {
-                val response= api.PostDoubt(
-                    PostDoubtItem(
-                        username = username,
-                        title = title,
-                        question = question,
-                        tags = cur_question_tags
-                    )
-                )
-                if(response.isSuccessful){
-                    val body=response.body()
-                    if(body!=null){
-                        if(body.error_msg.isNullOrEmpty()){
-                            if(doubt_files.isNotEmpty()) {
-                                UploadFilesForDoubt(
-                                    onFinish = { success, msg ->
-                                        onFinish(success, msg)
-                                    }
-                                )
-                            }
-                            else{
-                                onFinish(true,"")
-                            }
-                            ClearCurrentQuestionTags()
-                        }
-                        else{
-                            onFinish(false,"${body.error_msg}")
-                        }
-                    }
-                    else{
-                        onFinish(false,"Body is null")
-                    }
-                }
-                else{
-                    onFinish(false,"Error Posting Question:${response.message()}")
-                }
-            }
-            catch (e: Exception){
-                onFinish(false,"${e.message?:"Unknown Error"}")
-            }
+                val response = api.Login(User(username = username, password = password))
+                if (response.isSuccessful && response.body() != null) {
+                    JWT_TOKEN = response.body()!!.token
+                    saveJwtToken(context = context)
+                    userRepository.refreshCurrentUserInfo()
+                    onFinish(true, "")
+                } else onFinish(false, response.body()?.msg ?: response.message())
+            } catch (e: Exception) { onFinish(false, e.message.toString()) }
         }
     }
-    fun GetRecentDoubts(onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-                    val response = api.GetRecentQuestions()
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        recent_doubts.clear()
-                        if (lst != null) {
-                            recent_doubts.addAll(lst)
 
-                        }
-                        Log.d("apisuccess", "successfully retrieved recent_doubts:.$recent_doubts")
-                        onFinish(true, "")
-                    } else {
-                        Log.d("apifailure", "this is from GetResponse(), ${response.message()}")
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "this is from GetResponse(), ${e.message}")
-                    onFinish(false, "Error:${e.message}")
-                }
-            }
-    }
-    fun SearchDoubts(search_text:String, onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-                    val response = api.GetDoubtsByFilter(
-                        search_text = search_text,
-                        tags = search_question_tags,
-                        from_date = GetLocalInUTC(
-                            if (should_date_filter) from_date.toString() else LocalDate.of(
-                                1,
-                                1,
-                                1
-                            ).toString(), start_of_day = true
-                        ),
-                        to_date = GetLocalInUTC(to_date.toString(), start_of_day = false),
-                        status = status_doubt_filter.name
-                    )
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        filtered_doubts.clear()
-                        if (lst != null) {
-                            filtered_doubts.addAll(lst)
-                            onFinish(true, "")
-                            Log.d("apisuccess", "Successfully searched doubts:$filtered_doubts")
-                        } else {
-                            onFinish(false, "Could not get data,Please try again later")
-                            Log.d(
-                                "apifailure",
-                                "this is from SearchDoubts(), ${response.message()}"
-                            )
-                        }
-                    } else {
-                        onFinish(false, response.message())
-                        Log.d("apifailure", "this is from SearchDoubts(), ${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    onFinish(false, "${e.message}")
-                    Log.d("apifailure", "this is from SearchDoubts(), ${e.message}")
-                }
-            }
-    }
-    fun MarkQuestionAsSolved(question_id: Int,onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-                    val response =
-                        api.MarkQuestionSolved(MarkQuestionSolvedItem(question_id = question_id))
-                    if (response.isSuccessful) {
-                        val tmp = response.body()
-                        if (tmp != null) {
-                            if (tmp.error_msg == "" || tmp.error_msg == null) {
-                                Log.d(
-                                    "apisuccess",
-                                    "From MarkQuestionAsSolved(): Successfully Posted Answer"
-                                )
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, tmp.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "got null response")
-                        }
-                    } else {
-                        Log.d("apifailure", "From MarkQuestionAsSolved(): ${response.message()}")
-                        onFinish(false, response.message())
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From MarkQuestionAsSolved(): ${e.message}")
-                    onFinish(false, "${e.message}")
-                }
-            }
-    }
-    fun UploadFilesForDoubt(onFinish: (Boolean, String) -> Unit){
-        val fileparts = doubt_files.mapIndexed { index,item ->
-            MultipartBody.Part.createFormData(
-                name = MULTIPARTBODY_FILE_KEY,
-                filename = item.filename,
-                body = item.multipartBody.body
-            )
-        }
-
-        viewModelScope.launch {
-            try{
-                val response= api.UploadFilesForDoubt(
-                    files=fileparts)
-                if (response.isSuccessful) {
-                    val tmp = response.body()
-                    if (tmp != null) {
-                        if (tmp.error_msg == "" || tmp.error_msg == null) {
-                            Log.d("apisuccess", "From UploadFilesForDoubt(): Successfully Uploaded Files")
-                            onFinish(true, "")
-                        } else {
-                            onFinish(false, tmp.error_msg)
-                        }
-                    } else {
-                        onFinish(false, "got null response")
-                    }
-                } else {
-                    Log.d("apifailure", "From UploadFilesForDoubt(): ${response.message()}")
-                    onFinish(false, response.message())
-                }
-            }
-            catch (e: Exception){
-                onFinish(false, "$e.message()")
-            }
-        }
-    }
-    fun ClearCurrentQuestionTags(){
-        cur_question_tags.clear()
-    }
-    fun GetTags(onFinish: (Boolean, String) -> Unit){
-
-            viewModelScope.launch {
-                try {
-                    val response = api.GetAllTags()
-                    if (response.isSuccessful) {
-                        val tmp = response.body()
-                        val all_tags = tmp?.tags
-                        tags.clear()
-                        tags.addAll(all_tags!!)
-                        onFinish(true, "")
-                    } else {
-                        Log.d("apifailure", "From GetTags(): failed all tags,no clear response")
-                        onFinish(false, response.message())
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From GetTags(): failed all tags,server error,${e.message}")
-                    onFinish(false, "${e.message}")
-                }
-            }
-
-    }
-    fun Vote(answer_id:Int,should_do_upvote:Boolean,is_up_voted:Boolean,is_down_voted:Boolean,changeUpVote:(Int)->Unit,changeDownVote:(Int)->Unit,onFinish: (Boolean, String) -> Unit){
-        var add_to_upvote=0
-        var add_to_downvote=0
-        if(is_up_voted){
-            if(should_do_upvote==false){
-                add_to_downvote=1
-                add_to_upvote=-1
-            }
-        }
-        else if(is_down_voted){
-            if(should_do_upvote){
-                add_to_downvote=-1
-                add_to_upvote=1
-            }
-        }
-        else{
-            if(should_do_upvote)
-                add_to_upvote=1
-            else
-                add_to_downvote=1
-        }
-        changeUpVote(add_to_upvote)
-        changeDownVote(add_to_downvote)
-
-            viewModelScope.launch {
-                try {
-                    val response = api.VoteAnswer(
-                        com.example.asknitt.data.model.Vote(
-                            answer_id = answer_id,
-                            add_to_upvote = add_to_upvote,
-                            add_to_downvote = add_to_downvote
-                        )
-                    )
-                    if (response.isSuccessful) {
-                        val tmp = response.body()
-                        if (tmp != null) {
-                            if (tmp.error_msg == "" || tmp.error_msg == null) {
-                                Log.d("apisuccess", "From Vote(): Successfully Voted")
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, tmp.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "got null response")
-                        }
-                    } else {
-                        onFinish(false, response.message())
-                        Log.d("apifailure", "From Vote(): ${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From Vote(): ${e.message}")
-                    onFinish(false, "${e.message}")
-                }
-            }
-
-    }
-    fun ClearDoubtFiles(){
-        doubt_files.clear()
-    }
-
-    fun PostAnswer(question_id: Int,answer: String,onFinish: (Boolean, String) -> Unit){
-
-            viewModelScope.launch {
-                try {
-                    val response = api.PostAnswer(
-                        PostAnswerToDoubtItem(
-                            question_id = question_id,
-                            answer = answer,
-                            answered_username = username
-                        )
-                    )
-                    if (response.isSuccessful) {
-                        val tmp = response.body()
-                        if (tmp != null) {
-                            if (tmp.error_msg == "" || tmp.error_msg == null) {
-                                Log.d("apisuccess", "From PostAnswer(): Successfully Posted Answer")
-                                if(answer_files.isNotEmpty()) {
-                                    UploadFilesForAnswer(onFinish = { success, msg ->
-                                        onFinish(success, msg)
-                                    })
-                                }
-                                else {
-                                    onFinish(true, "")
-                                }
-                            } else {
-                                onFinish(false, tmp.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "got null response")
-                        }
-                    } else {
-                        Log.d("apifailure", "From PostAnswer(): ${response.message()}")
-                        onFinish(false, response.message())
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From PostAnswer(): ${e.message}")
-                    onFinish(false, "${e.message}")
-                }
-            }
-    }
-    fun GetAnswersByQuestionId(question_id:Int,onFinish:(Boolean,String)->Unit){
-            viewModelScope.launch {
-                try {
-                    val response = api.GetAnswers(question_id)
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        cur_question_answers.clear()
-                        if (lst != null) {
-                            cur_question_answers.addAll(lst)
-                            onFinish(true, "success")
-                        } else {
-                            onFinish(false, "could not get questions")
-                        }
-
-                        Log.d(
-                            "apisuccess",
-                            "this is from GetAnswers(), successfully gotten answers"
-                        )
-
-                    } else {
-                        Log.d(
-                            "apifailure",
-                            "this is from GetAnswers(), message:response.body is empty"
-                        )
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "this is from GetAnswers(), message:${e.message}")
-                    onFinish(false, "Error:${e.message}")
-                }
-            }
-
-    }
-    fun UploadFilesForAnswer(onFinish: (Boolean, String) -> Unit){
-        val fileparts = answer_files.mapIndexed { index,item ->
-            MultipartBody.Part.createFormData(
-                name = MULTIPARTBODY_FILE_KEY,
-                filename = item.filename,
-                body = item.multipartBody.body
-            )
-        }
-        viewModelScope.launch {
-            try{
-                val response= api.UploadFilesForAnswer(
-                    files=fileparts)
-                if (response.isSuccessful) {
-                    val tmp = response.body()
-                    if (tmp != null) {
-                        if (tmp.error_msg == "" || tmp.error_msg == null) {
-                            Log.d("apisuccess", "From UploadFilesForDoubt(): Successfully Uploaded Files")
-                            onFinish(true, "")
-                        } else {
-                            onFinish(false, tmp.error_msg)
-                        }
-                    } else {
-                        onFinish(false, "got null response")
-                    }
-                } else {
-                    Log.d("apifailure", "From UploadFilesForDoubt(): ${response.message()}")
-                    onFinish(false, response.message())
-                }
-            }
-            catch (e: Exception){
-                onFinish(false, "$e.message()")
-            }
-        }
-    }
-    fun CLearAnswerFiles(){
-        answer_files.clear()
-    }
-
-    fun GetUserFriends(onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-
-                    val response = api.GetUsersFriends()
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        users_friends.clear()
-                        if (lst != null) {
-                            users_friends.addAll(lst)
-                            onFinish(true, "success")
-                        } else {
-                            onFinish(false, "Could not get friends")
-                        }
-                        Log.d(
-                            "apisuccess",
-                            "this is from GetUserFriends(), successfully gotten friends"
-                        )
-
-                    } else {
-                        Log.d(
-                            "apifailure",
-                            "this is from GetUserFriends(), message:response.body is empty"
-                        )
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    onFinish(false, "${e.message}")
-                }
-            }
-    }
-    fun GetUserRecievedFriendRequests(onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-
-                    val response = api.GetUserFriendRequestsRecieved()
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        user_friend_requests_recieved.clear()
-                        if (lst != null) {
-                            user_friend_requests_recieved.addAll(lst)
-                            onFinish(true, "success")
-                        } else {
-                            onFinish(false, "Could not get requests")
-                        }
-                        Log.d(
-                            "apisuccess",
-                            "this is from GetUserRecievedFriendRequests(), successfully gotten requests"
-                        )
-
-                    } else {
-                        Log.d(
-                            "apifailure",
-                            "this is from GetUserRecievedFriendRequests(), message:response.body is empty"
-                        )
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    onFinish(false, "Error:${e.message}")
-                }
-            }
-    }
-    fun GetUserSentFriendRequests(onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-
-                    val response = api.GetUserFriendRequestsSent()
-                    if (response.isSuccessful) {
-                        val lst = response.body()
-                        user_friend_requests_sent.clear()
-                        if (lst != null) {
-                            user_friend_requests_sent.addAll(lst)
-                            onFinish(true, "success")
-                        } else {
-                            onFinish(false, "Could not get requests")
-                        }
-                        Log.d(
-                            "apisuccess",
-                            "this is from GetUserSentFriendRequests(), successfully gotten requests"
-                        )
-                    } else {
-                        Log.d(
-                            "apifailure",
-                            "this is from GetUserSentFriendRequests(), message:response.body is empty"
-                        )
-                        onFinish(false, "Error:${response.message()}")
-                    }
-                } catch (e: Exception) {
-                    onFinish(false, "Error:${e.message}")
-                }
-            }
-    }
-    fun SendFriendRequest(other_username: String,onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-
-                    val response = api.SendFriendRequest(GeneralUser(other_username))
-                    if (response.isSuccessful) {
-                        val checkSuccess = response.body()
-                        if (checkSuccess != null) {
-                            if (checkSuccess.error_msg == "" || checkSuccess.error_msg == null) {
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, checkSuccess.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "Error, could not fetch checkSuccess")
-                        }
-                    } else {
-                        onFinish(false, response.message())
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From SendFriendRequest:${e.message}")
-                    onFinish(false, "${e.message}")
-                }
-            }
-    }
-    fun AcceptFriendRequest(other_username: String,onFinish: (Boolean, String) -> Unit){
-            viewModelScope.launch {
-                try {
-
-                    val response = api.AcceptFriendRequest(GeneralUser(username = other_username))
-                    if (response.isSuccessful) {
-                        val checkSuccess = response.body()
-                        if (checkSuccess != null) {
-                            if (checkSuccess.error_msg == "" || checkSuccess.error_msg == null) {
-                                onFinish(true, "")
-                            } else {
-                                onFinish(false, checkSuccess.error_msg)
-                            }
-                        } else {
-                            onFinish(false, "Error, could not fetch checkSuccess")
-                        }
-                    } else {
-                        onFinish(false, response.message())
-                    }
-                } catch (e: Exception) {
-                    Log.d("apifailure", "From AcceptFriendRequest:${e.message}")
-                    onFinish(false, "${e.message}")
-                }
-            }
-
-    }
-    fun DeclineFriendRequest(other_username: String,onFinish: (Boolean, String) -> Unit) {
+    fun signUpUser(context: Context, onFinish: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             try {
+                val response = api.SignUp(User(username = username, password = password))
+                if (response.isSuccessful && response.body() != null) {
+                    JWT_TOKEN = response.body()!!.token
+                    saveJwtToken(context = context)
+                    userRepository.refreshCurrentUserInfo()
+                    onFinish(true, "")
+                } else onFinish(false, response.body()?.msg ?: response.message())
+            } catch (e: Exception) { onFinish(false, e.message.toString()) }
+        }
+    }
 
-                val response = api.DeclineFriendRequest(GeneralUser(username = other_username))
-                if (response.isSuccessful) {
-                    val checkSuccess = response.body()
-                    if (checkSuccess != null) {
-                        if (checkSuccess.error_msg == "" || checkSuccess.error_msg == null) {
-                            onFinish(true, "")
-                        } else {
-                            onFinish(false, checkSuccess.error_msg)
-                        }
-                    } else {
-                        onFinish(false, "Error, could not fetch checkSuccess")
-                    }
+    fun logout(context: Context, onFinish: (Boolean, String) -> Unit) {
+        deleteJwtToken(context = context); onFinish(true, "")
+    }
+
+    private fun getMasterKey(context: Context): MasterKey {
+        return MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+    }
+
+    fun saveJwtToken(context: Context) {
+        val masterKey = getMasterKey(context)
+        val prefs = EncryptedSharedPreferences.create(
+            context,
+            SHARED_PREFS_FILENAME_ENCRYPTED,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        prefs.edit().putString("JWTToken", JWT_TOKEN).apply()
+    }
+
+    fun deleteJwtToken(context: Context) {
+        val masterKey = getMasterKey(context)
+        val prefs = EncryptedSharedPreferences.create(
+            context,
+            SHARED_PREFS_FILENAME_ENCRYPTED,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        prefs.edit().putString("JWTToken", "").apply()
+    }
+
+    fun updateProfileVisibility(visibility: ProfileVisibility, onFinish: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = api.UpdateProfileVisibility(UpdateVisibilityRequest(visibility))
+                if (response.isSuccessful && response.body()?.success == true) {
+                    profileVisibility = response.body()!!.profile_visibility
+                    userRepository.refreshCurrentUserInfo()
+                    onFinish(true, "")
                 } else {
-                    onFinish(false, response.message())
+                    onFinish(false, response.body()?.error_msg ?: "Update failed")
                 }
             } catch (e: Exception) {
-                Log.d("apifailure", "From DeclineFriendRequest:${e.message}")
-                onFinish(false, "${e.message}")
+                onFinish(false, e.message ?: "Error")
             }
         }
-    }
-
-
-    fun SaveJWTToken(context: Context){
-        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        val prefs = EncryptedSharedPreferences.create(
-            SHARED_PREFS_FILENAME_ENCRYPTED, // filename
-            masterKey,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-        val edit=prefs.edit()
-        edit.putString("JWTToken", JWT_TOKEN)
-        edit.apply()
-    }
-    fun DeleteJWTToken(context: Context){
-        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        val prefs = EncryptedSharedPreferences.create(
-            SHARED_PREFS_FILENAME_ENCRYPTED, // filename
-            masterKey,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-        val edit=prefs.edit()
-        edit.putString("JWTToken","")
-        edit.apply()
     }
 }

@@ -47,9 +47,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
-import com.example.asknitt.data.model.AuthScreenRoutes
-import com.example.asknitt.data.model.LoginType
-import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.LoginType
+import com.example.asknitt.data.routes.AuthScreenRoutes
+import com.example.asknitt.data.routes.MainScreenRoutes
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,8 +172,8 @@ fun LoginScreen(navController: NavController, loginType: LoginType, mainViewMode
                 Spacer(modifier=Modifier.height(32.dp))
                 Button(
                     onClick = {
-                        mainViewModel.SetUsername(username)
-                        mainViewModel.SetPassword(password)
+                        mainViewModel.updateUsername(username)
+                        mainViewModel.updatePassword(password)
                         show_progress_indicator=true
                         isloginselectable=false
 
@@ -207,7 +207,7 @@ fun LoginScreen(navController: NavController, loginType: LoginType, mainViewMode
             LoginSignupIntermediate(
                 onLaunch = {
                     if(loginType== LoginType.LOGIN){
-                        mainViewModel.LoginUser(
+                        mainViewModel.loginUser(
                             context = context,
                             onFinish = {success,error_msg->
                                 if(success){
@@ -223,7 +223,7 @@ fun LoginScreen(navController: NavController, loginType: LoginType, mainViewMode
                             })
                     }
                     else{
-                        mainViewModel.SignUpUser(
+                        mainViewModel.signUpUser(
                             context = context,
                             onFinish = {success,error_msg->
                                 if(success){

@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-
+    id("com.google.devtools.ksp") version "2.0.21-1.0.27"
 }
 
 android {
@@ -72,14 +72,19 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3") // For logging requests
+    implementation("com.github.jeziellago:compose-markdown:0.5.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("com.caverock:androidsvg:1.4")
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
     implementation ("com.squareup.okio:okio:3.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
-    val room_version = "3.0.0-alpha05"
-    implementation("androidx.room3:room3-runtime:${room_version}")
-    implementation(libs.kotlinx.serialization.json)
+    
+    // Room Dependencies
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
 
+    implementation(libs.kotlinx.serialization.json)
 }

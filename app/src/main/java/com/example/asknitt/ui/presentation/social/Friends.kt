@@ -20,6 +20,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,13 +36,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
-import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.model.GeneralUser
+import com.example.asknitt.data.routes.MainScreenRoutes
+import com.example.asknitt.viewmodels.ExploreViewModel
 
 @Composable
-fun Friends(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
-    Box(modifier=Modifier
-        .fillMaxSize()
-        .background(color= colorResource(R.color.black))){
+fun Friends(exploreViewModel: ExploreViewModel, navController: NavController, modifier: Modifier = Modifier) {
+    val friends by exploreViewModel.usersFriends.collectAsState()
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(color = colorResource(R.color.black))
+    ) {
         IconButton(
             onClick = {
                 navController.navigateUp()
@@ -68,10 +76,14 @@ fun Friends(mainViewModel: MainViewModel, navController: NavController, modifier
         }
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier= Modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .padding(top=dimensionResource(R.dimen.from_top_padding),bottom=dimensionResource(R.dimen.large_padding),start=dimensionResource(
-                    R.dimen.large_padding),end=dimensionResource(R.dimen.large_padding))
+                .padding(
+                    top = dimensionResource(R.dimen.from_top_padding),
+                    bottom = dimensionResource(R.dimen.large_padding),
+                    start = dimensionResource(R.dimen.large_padding),
+                    end = dimensionResource(R.dimen.large_padding)
+                )
         ) {
             Text(
                 text = "Friends",
@@ -83,37 +95,37 @@ fun Friends(mainViewModel: MainViewModel, navController: NavController, modifier
                 modifier = Modifier
                     .fillMaxWidth()
             )
-            IconButton(onClick = {
-                navController.navigate(MainScreenRoutes.FRIEND_REQUESTS.name)
-            },
-                modifier= Modifier.align(Alignment.End)
+            IconButton(
+                onClick = {
+                    navController.navigate(MainScreenRoutes.FRIEND_REQUESTS.name)
+                },
+                modifier = Modifier.align(Alignment.End)
             ) {
                 Icon(
                     imageVector = Icons.Default.PersonAdd,
                     contentDescription = "Friend Requests",
-                    tint=colorResource(R.color.electric_green),
+                    tint = colorResource(R.color.electric_green),
                 )
             }
-            if(mainViewModel.users_friends.isEmpty()){
-                Box(modifier=Modifier.fillMaxSize()){
+            if (friends.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
                     Text(
-                        text="You made no friends yet",
-                        color=colorResource(R.color.white),
+                        text = "You made no friends yet",
+                        color = colorResource(R.color.white),
                         fontSize = 24.sp,
                         fontFamily = FontFamily(Font(R.font.foldable)),
-                        modifier=Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
-            }
-            else {
+            } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                 ) {
-                    items(mainViewModel.users_friends) { user_friend ->
+                    items(friends) { friend: GeneralUser ->
                         UserCard(
-                            generalUser = user_friend,
+                            generalUser = friend,
                             navController = navController
                         )
                     }

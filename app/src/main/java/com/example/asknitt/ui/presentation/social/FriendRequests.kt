@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,15 +46,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
 import com.example.asknitt.data.model.GeneralUser
-import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.routes.MainScreenRoutes
 import com.example.asknitt.ui.components.LoadingScreenWithRetry
 import com.example.asknitt.ui.components.LoadingScreenWithToast
+import com.example.asknitt.viewmodels.ExploreViewModel
 
 @Composable
-fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, modifier:Modifier=Modifier){
+fun FriendRequests(exploreViewModel: ExploreViewModel, navController: NavController, modifier:Modifier=Modifier){
     val tabs=listOf("Received","Sent")
     var selected_option by remember { mutableStateOf(tabs[0]) }
     Box(modifier=Modifier.fillMaxSize().background(colorResource(R.color.black))) {
@@ -128,7 +129,7 @@ fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, m
                 "Received"->{
                     LoadingScreenWithRetry(
                         inside_launched_effect = { onResult ->
-                            mainViewModel.GetUserRecievedFriendRequests(
+                            exploreViewModel.getUserReceivedFriendRequests(
                                 onFinish = { success, msg ->
                                     onResult(success, msg)
                                 }
@@ -138,7 +139,7 @@ fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, m
                         should_verify_exp_sign = true,
                         to_show_on_success = {
                             RecievedFriendRequests(
-                                mainViewModel = mainViewModel,
+                                exploreViewModel = exploreViewModel,
                                 navController = navController
                             )
                         },
@@ -147,7 +148,7 @@ fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, m
                 "Sent"->{
                     LoadingScreenWithRetry(
                         inside_launched_effect = { onResult ->
-                            mainViewModel.GetUserSentFriendRequests(
+                            exploreViewModel.getUserSentFriendRequests(
                                 onFinish = { success, msg ->
                                     onResult(success, msg)
                                 }
@@ -157,7 +158,7 @@ fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, m
                         should_verify_exp_sign = true,
                         to_show_on_success = {
                             SentFriendRequests(
-                                mainViewModel = mainViewModel,
+                                exploreViewModel = exploreViewModel,
                                 navController = navController
                             )
                         },
@@ -168,8 +169,10 @@ fun FriendRequests(mainViewModel: MainViewModel, navController: NavController, m
     }
 }
 @Composable
-fun RecievedFriendRequests(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
-    if(mainViewModel.user_friend_requests_recieved.isEmpty()){
+fun RecievedFriendRequests(exploreViewModel: ExploreViewModel, navController: NavController, modifier: Modifier=Modifier){
+    val requests by exploreViewModel.userFriendRequestsReceived.collectAsState()
+    
+    if(requests.isEmpty()){
         Box(modifier=Modifier.fillMaxSize()){
             Text(
                 text="no requests recieved",
@@ -184,10 +187,10 @@ fun RecievedFriendRequests(mainViewModel: MainViewModel, navController: NavContr
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()) {
-            items(mainViewModel.user_friend_requests_recieved) { friend_request ->
+            items(requests) { friend_request ->
                 FriendRequestCard(
                     generalUser = friend_request,
-                    mainViewModel = mainViewModel,
+                    exploreViewModel = exploreViewModel,
                     navController = navController,
                     show_dustbin = false
                 )
@@ -196,8 +199,10 @@ fun RecievedFriendRequests(mainViewModel: MainViewModel, navController: NavContr
     }
 }
 @Composable
-fun SentFriendRequests(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
-    if(mainViewModel.user_friend_requests_sent.isEmpty()){
+fun SentFriendRequests(exploreViewModel: ExploreViewModel, navController: NavController, modifier: Modifier=Modifier){
+    val requests by exploreViewModel.userFriendRequestsSent.collectAsState()
+
+    if(requests.isEmpty()){
         Box(modifier=Modifier.fillMaxSize()){
             Text(
                 text="no friend requests sent",
@@ -212,10 +217,10 @@ fun SentFriendRequests(mainViewModel: MainViewModel, navController: NavControlle
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()) {
-            items(mainViewModel.user_friend_requests_sent) { friend_request ->
+            items(requests) { friend_request ->
                 FriendRequestCard(
                     generalUser = friend_request,
-                    mainViewModel = mainViewModel,
+                    exploreViewModel = exploreViewModel,
                     navController = navController,
                     show_dustbin = true
                 )
@@ -225,7 +230,7 @@ fun SentFriendRequests(mainViewModel: MainViewModel, navController: NavControlle
 }
 
 @Composable
-fun FriendRequestCard(generalUser: GeneralUser, mainViewModel: MainViewModel, navController: NavController, show_dustbin:Boolean, modifier:Modifier=Modifier){
+fun FriendRequestCard(generalUser: GeneralUser, exploreViewModel: ExploreViewModel, navController: NavController, show_dustbin:Boolean, modifier:Modifier=Modifier){
     var show_accept_request_loading by remember { mutableStateOf(false) }
     var show_decline_request_loading by remember { mutableStateOf(false) }
     Card(
@@ -285,8 +290,8 @@ fun FriendRequestCard(generalUser: GeneralUser, mainViewModel: MainViewModel, na
         if(show_accept_request_loading){
             LoadingScreenWithToast(
                 inside_launched_effect = { onResult ->
-                    mainViewModel.AcceptFriendRequest(
-                        other_username = generalUser.username,
+                    exploreViewModel.acceptFriendRequest(
+                        otherUsername = generalUser.username,
                         onFinish = { success, msg ->
                             onResult(success, msg)
                         }
@@ -307,8 +312,8 @@ fun FriendRequestCard(generalUser: GeneralUser, mainViewModel: MainViewModel, na
         if(show_decline_request_loading){
             LoadingScreenWithToast(
                 inside_launched_effect = { onResult ->
-                    mainViewModel.DeclineFriendRequest(
-                        other_username = mainViewModel.other_user_info!!.username,
+                    exploreViewModel.declineFriendRequest(
+                        otherUsername = generalUser.username,
                         onFinish = { success, msg ->
                             onResult(success, msg)
                         }

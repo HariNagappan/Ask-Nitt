@@ -11,6 +11,7 @@ activityCompose = "1.10.1"
 composeBom = "2024.04.01"
 navigationRuntimeAndroid = "2.9.0-beta01"
 navigationCompose = "2.8.9"
+roomCompiler = "2.6.1"
 toolsCore = "1.0.0-alpha13"
 foundationLayoutAndroid = "1.7.2"
 media3Datasource = "1.7.1"
@@ -19,6 +20,7 @@ cronetEmbedded = "119.6045.31"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

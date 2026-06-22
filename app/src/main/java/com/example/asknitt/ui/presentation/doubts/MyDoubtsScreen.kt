@@ -31,6 +31,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,15 +45,18 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
+import com.example.asknitt.data.functions.GetUtcInLocalTime
 import com.example.asknitt.data.model.Doubts
-import com.example.asknitt.data.model.GetUtcInLocalTime
-import com.example.asknitt.data.model.MainScreenRoutes
 import com.example.asknitt.data.model.QuestionStatus
+import com.example.asknitt.data.routes.MainScreenRoutes
+import com.example.asknitt.viewmodels.DoubtsViewModel
 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DoubtsScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
+fun DoubtsScreen(doubtsViewModel: DoubtsViewModel, navController: NavController, modifier: Modifier=Modifier){
+    val userDoubts by doubtsViewModel.userDoubts.collectAsState()
+
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black)){
@@ -65,7 +70,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel, navController: NavController, mod
                 fontFamily = FontFamily(Font(R.font.headings))
                 )
             Spacer(modifier=Modifier.width(32.dp))
-            if(mainViewModel.user_doubts.isEmpty()){
+            if(userDoubts.isEmpty()){
                 Box(modifier=Modifier.fillMaxSize()){
                     Text(
                         text="You didn't ask any questions yet!! ",
@@ -79,7 +84,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel, navController: NavController, mod
             }
             else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(mainViewModel.user_doubts){doubt->
+                    items(userDoubts){doubt->
                         DoubtCard(doubt = doubt, navController = navController)
                     }
                 }
@@ -105,6 +110,7 @@ fun DoubtsScreen(mainViewModel: MainViewModel, navController: NavController, mod
         }
     }
 }
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DoubtCard(navController: NavController,doubt: Doubts){
@@ -132,14 +138,6 @@ fun DoubtCard(navController: NavController,doubt: Doubts){
                         fontSize = 16.sp,
                         color = colorResource(R.color.electric_gold)
                     )
-//                    Spacer(modifier = Modifier.weight(1f))
-//                    if(should_show_username) {
-//                        Text(
-//                            text = "Asked by: ${doubt.posted_username}",
-//                            fontSize = 16.sp,
-//                            color = colorResource(R.color.electric_pink)
-//                        )
-//                    }
                 }
                 Text(
                     text=doubt.title,
@@ -165,16 +163,15 @@ fun DoubtCard(navController: NavController,doubt: Doubts){
     }
 }
 @Composable
-fun CustomTagsSuggestionShower(cur_text:String, add_to_lst: MutableList<String>, mainViewModel: MainViewModel, exclude:List<String>, modifier:Modifier=Modifier){
+fun CustomTagsSuggestionShower(cur_text:String, add_to_lst: MutableList<String>, doubtsViewModel: DoubtsViewModel, exclude:List<String>, modifier:Modifier=Modifier){
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp),modifier=modifier.horizontalScroll(rememberScrollState())) {
-        val lst=mainViewModel.tags.filter { it.startsWith(cur_text) && !(it in exclude)}.take(10)
+        val lst=doubtsViewModel.tags.filter { it.startsWith(cur_text) && !(it in exclude)}.take(10)
         lst.forEach { tag->
             TagItem(
                 text=tag,
                 should_show_cross=false,
                 onClickText = {
                     add_to_lst.add(tag)
-                    //Log.d("general","mainviewmodel.curquestiontags:${mainViewModel.cur_question_tags}")
                 },
                 onClickCross = {}
                 )

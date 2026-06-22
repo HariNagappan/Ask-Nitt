@@ -1,7 +1,7 @@
 package com.example.asknitt.data.remote
 
-import com.example.asknitt.data.model.BASE_URL
-import com.example.asknitt.data.model.JWT_TOKEN
+import com.example.asknitt.data.BASE_URL
+import com.example.asknitt.data.JWT_TOKEN
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit

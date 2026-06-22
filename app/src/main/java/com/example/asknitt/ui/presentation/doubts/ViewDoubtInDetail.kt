@@ -37,6 +37,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,19 +59,21 @@ import androidx.navigation.NavController
 import com.example.asknitt.util.FileCard
 import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
+import com.example.asknitt.data.functions.GetUtcInLocalTime
 import com.example.asknitt.data.model.Answer
-import com.example.asknitt.data.model.AuthScreenRoutes
-import com.example.asknitt.data.model.BASE_URL
+import com.example.asknitt.data.BASE_URL
 import com.example.asknitt.data.model.Doubts
-import com.example.asknitt.data.model.GetUtcInLocalTime
-import com.example.asknitt.data.model.MAX_ANSWER_LENGTH
-import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.MAX_ANSWER_LENGTH
 import com.example.asknitt.data.model.QuestionStatus
+import com.example.asknitt.data.routes.AuthScreenRoutes
+import com.example.asknitt.data.routes.MainScreenRoutes
 import com.example.asknitt.ui.components.LoadingScreenWithToast
+import com.example.asknitt.viewmodels.AnswerViewModel
+import com.example.asknitt.viewmodels.DoubtsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel: MainViewModel){
+fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel: MainViewModel,doubtsViewModel: DoubtsViewModel,answerViewModel: AnswerViewModel){
     //TODO add edit doubt later
     var should_show_post_answer by remember{mutableStateOf(false)}
     var scrollstate = rememberScrollState()
@@ -248,7 +251,7 @@ fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel
                 fontSize = 32.sp
                 )
             Spacer(modifier=Modifier.height(16.dp))
-            if(mainViewModel.cur_question_answers.isEmpty()){
+            if(answerViewModel.curQuestionAnswers.collectAsState().value.isEmpty()){
                 Spacer(modifier=Modifier.height(16.dp))
                 Text(
                     text = "No Answers Yet",
@@ -261,7 +264,7 @@ fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel
             }
             else{
                 Text(
-                    text = "${mainViewModel.cur_question_answers.size} Answers",
+                    text = "${answerViewModel.curQuestionAnswers.collectAsState().value.size} Answers",
                     color = colorResource(R.color.electric_pink),
                     //fontFamily = FontFamily(Font(R.font.foldable)),
                     fontSize = 24.sp,
@@ -269,10 +272,10 @@ fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel
                     modifier=Modifier.fillMaxWidth()
                 )
                 //Spacer(modifier=Modifier.height(16.dp))
-                for(answer in mainViewModel.cur_question_answers){
+                for(answer in answerViewModel.curQuestionAnswers.collectAsState().value){
                     AnswerCard(
                         answer=answer,
-                        mainViewModel=mainViewModel,
+                        answerViewModel = answerViewModel,
                         navController=navController
                     )
                 }
@@ -298,10 +301,11 @@ fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel
             }
             AnimatedVisibility(should_show_post_answer) {
                 Log.d("general","showing add answer")
-                mainViewModel.CLearAnswerFiles()
+                answerViewModel.clearAnswerFiles()
                 AddAnswer(
                     question_id = doubt.question_id,
-                    mainViewModel=mainViewModel,
+                    answerViewModel=answerViewModel,
+                    mainViewModel = mainViewModel,
                     answer_text = answer_text,
                     onClose = {
                         should_show_post_answer=false
@@ -320,8 +324,9 @@ fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel
         if(show_mark_as_solved){
             LoadingScreenWithToast(
                 inside_launched_effect = { onResult ->
-                    mainViewModel.MarkQuestionAsSolved(
-                        question_id = doubt.question_id,
+                    doubtsViewModel.markQuestionAsSolved(
+                        username=mainViewModel.username,
+                        questionId = doubt.question_id,
                         onFinish = { success, msg ->
                             onResult(success, msg)
                         }
@@ -343,7 +348,7 @@ fun ViewDoubtInDetail(doubt: Doubts, navController: NavController, mainViewModel
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AnswerCard(answer: Answer, mainViewModel: MainViewModel, navController: NavController){
+fun AnswerCard(answer: Answer, answerViewModel: AnswerViewModel, navController: NavController){
     Card(
         colors= CardDefaults.cardColors(containerColor = colorResource(R.color.dark_gray)),
         modifier=Modifier
@@ -400,13 +405,13 @@ fun AnswerCard(answer: Answer, mainViewModel: MainViewModel, navController: NavC
                 verticalAlignment = Alignment.CenterVertically,
                 modifier=Modifier
                 .fillMaxWidth()){
-                UpvoteDownVote(answer_id = answer.answer_id, upvotes = answer.upvotes, downvotes = answer.downvotes,mainViewModel=mainViewModel,navController=navController)
+                UpvoteDownVote(answer_id = answer.answer_id, upvotes = answer.upvotes, downvotes = answer.downvotes, answerViewModel = answerViewModel,navController=navController)
             }
         }
     }
 }
 @Composable
-fun UpvoteDownVote(answer_id:Int, upvotes:Int, downvotes:Int, mainViewModel: MainViewModel, navController: NavController, modifier:Modifier=Modifier){
+fun UpvoteDownVote(answer_id:Int, upvotes:Int, downvotes:Int, answerViewModel: AnswerViewModel, navController: NavController, modifier:Modifier=Modifier){
     var is_upvoted by remember { mutableStateOf(false) }
     var is_downvoted by remember { mutableStateOf(false) }
     var total_upvotes by remember { mutableStateOf(upvotes) }
@@ -416,11 +421,11 @@ fun UpvoteDownVote(answer_id:Int, upvotes:Int, downvotes:Int, mainViewModel: Mai
     Row(verticalAlignment = Alignment.CenterVertically) {
         Button(
             onClick = {
-                mainViewModel.Vote(
-                    answer_id=answer_id,
-                    is_up_voted=is_upvoted,
-                    is_down_voted=is_downvoted,
-                    should_do_upvote = true,
+                answerViewModel.vote(
+                    answerId =answer_id,
+                    isUpVoted =is_upvoted,
+                    isDownVoted = is_downvoted,
+                    shouldDoUpvote = true,
                     changeUpVote = {to_be_added->
                         total_upvotes+=to_be_added
                     },
@@ -464,11 +469,11 @@ fun UpvoteDownVote(answer_id:Int, upvotes:Int, downvotes:Int, mainViewModel: Mai
         }
         Button(
             onClick = {
-                mainViewModel.Vote(
-                    answer_id=answer_id,
-                    is_up_voted=is_upvoted,
-                    is_down_voted=is_downvoted,
-                    should_do_upvote = false,
+                answerViewModel.vote(
+                    answerId =answer_id,
+                    isUpVoted =is_upvoted,
+                    isDownVoted =is_downvoted,
+                    shouldDoUpvote = false,
                     onFinish = {success,msg->
                         if(success){
                             Toast.makeText(context,"Successfully Voted", Toast.LENGTH_SHORT).show()

@@ -4,6 +4,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,12 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,12 +46,16 @@ import androidx.navigation.NavController
 import com.example.asknitt.ui.presentation.doubts.DoubtCard
 import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
-import com.example.asknitt.data.model.AuthScreenRoutes
-import com.example.asknitt.data.model.MainScreenRoutes
+import com.example.asknitt.data.routes.AuthScreenRoutes
+import com.example.asknitt.data.routes.MainScreenRoutes
+import com.example.asknitt.viewmodels.DoubtsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeScreen(mainViewModel: MainViewModel, navController: NavController, modifier: Modifier=Modifier){
+fun HomeScreen(mainViewModel: MainViewModel,doubtsViewModel: DoubtsViewModel,navController: NavController, modifier: Modifier=Modifier){
+    // Collect the StateFlow from ViewModel
+    val recentDoubts by doubtsViewModel.recentDoubts.collectAsState()
+
     Box(modifier=Modifier
         .fillMaxSize()
         .background(color=Color.Black))
@@ -70,25 +79,26 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavController, modif
                 modifier=Modifier
                     .fillMaxWidth()) {
                 Text(
-                    text = "People Helped: ${mainViewModel.user_questions_helped}",
+                    text = "People Helped: ${mainViewModel.userQuestionsHelped}",
                     fontSize = 18.sp,
                     modifier = Modifier.align(Alignment.Start),
                     color = colorResource(R.color.electric_green),
                 )
                 Text(
-                    text = "Total Questions Asked: ${mainViewModel.user_questions_asked}",
+                    text = "Total Questions Asked: ${mainViewModel.userQuestionsAsked}",
                     fontSize = 18.sp,
                     modifier = Modifier.align(Alignment.Start),
                     color = colorResource(R.color.electric_green),
                 )
                 Text(
-                    text = "You joined on: ${mainViewModel.joined_on}",
+                    text = "You joined on: ${mainViewModel.joinedOn}",
                     fontSize = 18.sp,
                     modifier = Modifier.align(Alignment.Start),
                     color = colorResource(R.color.electric_green),
                 )
 
             }
+
             Spacer(modifier=Modifier.height(64.dp))
             Text(
                 text="Trending Doubts:",
@@ -101,33 +111,48 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavController, modif
             LazyColumn(
                 modifier=Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(mainViewModel.recent_doubts) {doubt->
+                items(recentDoubts) { doubt -> // Using the collected state
                     DoubtCard(navController = navController, doubt = doubt)
                 }
             }
         }
+        Icon(
+            imageVector = Icons.Default.Settings,
+            contentDescription = null,
+            tint = colorResource(R.color.electric_gold),
+            modifier=Modifier
+                .align(Alignment.CenterStart)
+                .clickable{
+                    navController.navigate(MainScreenRoutes.SETTINGS.name)
+                },
+        )
     }
 }
+
 @Composable
-fun HomeScreenIntermediate(mainViewModel: MainViewModel, navController: NavController){
+fun HomeScreenIntermediate(mainViewModel: MainViewModel,doubtsViewModel: DoubtsViewModel, navController: NavController){
     var retrycount by remember { mutableStateOf(0) }
     var issuccess1 by remember { mutableStateOf(false) }
     var error_msg1 by remember { mutableStateOf("") }
     var issuccess2 by remember { mutableStateOf(false) }
     var error_msg2 by remember { mutableStateOf("") }
     val context=LocalContext.current
+    
+    val recentDoubts by doubtsViewModel.recentDoubts.collectAsState()
+
     LaunchedEffect(retrycount) {
-        mainViewModel.GetHomeScreenStuff(onFinishUserUnfo ={success,msg->
+        mainViewModel.getHomeScreenStuff(o1 ={success,msg->
             issuccess1=success
             error_msg1=msg
         },
-            onFinishRecentDoubts ={success,msg->
+            o2 ={success,msg->
                 issuccess2=success
                 error_msg2=msg
             }
         )
     }
-    if(error_msg1== stringResource(R.string.expired_signature) || error_msg1== stringResource(R.string.expired_signature)) {
+
+    if(error_msg1== stringResource(R.string.expired_signature) || error_msg2== stringResource(R.string.expired_signature)) {
         LaunchedEffect(Unit) {
             navController.navigate(AuthScreenRoutes.AUTH.name) {
                 popUpTo(MainScreenRoutes.MAIN.name) {
@@ -141,12 +166,15 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel, navController: NavContr
             ).show()
         }
     }
+
     Box(modifier=Modifier.fillMaxSize()){
-        if(!(issuccess1 && issuccess2) && (error_msg1=="" && error_msg2=="")){
+        // Modification: If we have cached data (offline), we can show it immediately 
+        // even if the refresh is still loading!
+        if(recentDoubts.isEmpty() && !(issuccess1 && issuccess2) && (error_msg1=="" && error_msg2=="")){
             CircularProgressIndicator(modifier=Modifier.align(Alignment.Center),color=colorResource(
                 R.color.electric_green))
         }
-        else if (!(issuccess1 && issuccess2)){//(error_msg1!="" || error_msg2!="") is always true
+        else if (recentDoubts.isEmpty() && !(issuccess1 && issuccess2)){
             Column(modifier=Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text="$error_msg1,$error_msg2",
@@ -175,8 +203,7 @@ fun HomeScreenIntermediate(mainViewModel: MainViewModel, navController: NavContr
             }
         }
         else{
-            HomeScreen(mainViewModel=mainViewModel,navController=navController)
+            HomeScreen(mainViewModel=mainViewModel,doubtsViewModel=doubtsViewModel,navController=navController)
         }
     }
-
 }

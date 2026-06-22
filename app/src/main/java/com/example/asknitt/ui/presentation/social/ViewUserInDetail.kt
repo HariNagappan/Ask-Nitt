@@ -4,16 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -22,253 +13,197 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.asknitt.viewmodels.MainViewModel
 import com.example.asknitt.R
-import com.example.asknitt.data.model.FriendRequestStatus
-import com.example.asknitt.data.model.GeneralUser
-import com.example.asknitt.data.model.GetUtcInLocalTime
+import com.example.asknitt.data.functions.GetUtcInLocalTime
+import com.example.asknitt.data.FriendRequestStatus
 import com.example.asknitt.ui.components.LoadingScreenWithToast
+import com.example.asknitt.viewmodels.ExploreViewModel
+import com.example.asknitt.viewmodels.MainViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ViewUserInDetail(mainViewModel: MainViewModel, navController: NavController, modifier:Modifier=Modifier){
-    var show_send_request_loading by remember{mutableStateOf(false)}
-    var show_accept_request_loading by remember { mutableStateOf(false) }
-    var show_decline_request_loading by remember { mutableStateOf(false) }
+fun ViewUserInDetail(exploreViewModel: ExploreViewModel, navController: NavController) {
+    var showSendRequestLoading by remember { mutableStateOf(false) }
+    var showAcceptRequestLoading by remember { mutableStateOf(false) }
+    var showDeclineRequestLoading by remember { mutableStateOf(false) }
 
+    val user = exploreViewModel.otherUserInfo ?: return
 
-
-    Box(modifier=Modifier.fillMaxSize().background(colorResource(R.color.black))){
-        IconButton(onClick = {
-            navController.navigateUp()
-        },
+    Box(modifier = Modifier.fillMaxSize().background(colorResource(R.color.black))) {
+        IconButton(
+            onClick = { navController.navigateUp() },
             colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Transparent),
-            modifier= Modifier
+            modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top=dimensionResource(R.dimen.from_top_padding),start=dimensionResource(R.dimen.med_padding))
+                .padding(top = dimensionResource(R.dimen.from_top_padding), start = dimensionResource(R.dimen.med_padding))
                 .size(40.dp)
                 .border(width = 2.dp, color = colorResource(R.color.electric_green), shape = CircleShape)
-                .clip(CircleShape)) {
+                .clip(CircleShape)
+        ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Go Back",
-                tint=colorResource(R.color.electric_green)
+                tint = colorResource(R.color.electric_green)
             )
         }
+
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier= Modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .align(Alignment.Center)
-                .padding(top=dimensionResource(R.dimen.from_top_padding)*2,bottom=dimensionResource(
-                    R.dimen.large_padding),start=dimensionResource(R.dimen.large_padding),end=dimensionResource(
-                    R.dimen.large_padding))
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = dimensionResource(R.dimen.large_padding))
+                .padding(top = dimensionResource(R.dimen.from_top_padding) * 2)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text=mainViewModel.other_user_info!!.username,
-                fontSize = 24.sp,
-                color=colorResource(R.color.electric_gold),
+                text = user.username,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = colorResource(R.color.electric_gold),
                 textAlign = TextAlign.Center,
-                modifier=Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
-            Text(
-                text="People Helped: "+mainViewModel.other_user_info!!.people_helped,
-                fontSize = 16.sp,
-                color=colorResource(R.color.electric_green),
-            )
-            Text(
-                text="Questions Asked: "+ mainViewModel.other_user_info!!.questions_asked,
-                fontSize = 16.sp,
-                color=colorResource(R.color.electric_green),
-            )
-            Text(
-                text="Joined On: "+ GetUtcInLocalTime(mainViewModel.other_user_info!!.joined_on),
-                fontSize = 16.sp,
-                color=colorResource(R.color.electric_green),
-            )
-            if(mainViewModel.other_user_info!!.friend_status== FriendRequestStatus.NOT_SENT){
-                Button(
-                    onClick = {
-                        show_send_request_loading=true
-                    },
-                    colors= ButtonDefaults.buttonColors(containerColor = colorResource(R.color.dark_gray)),
-                    modifier=Modifier
-                        .align(Alignment.CenterHorizontally)
-                ) {
-                    Text(
-                        text="Send Friend Request",
-                        fontSize = 16.sp,
-                        color=colorResource(R.color.electric_pink),
-                    )
-                }
-            }
-            else if(mainViewModel.other_user_info!!.friend_status== FriendRequestStatus.ACCEPTED){
-                Text(
-                    text="Already a Friend",
-                    fontSize = 20.sp,
-                    color=colorResource(R.color.electric_blue),
-                    modifier=Modifier
-                        .align(Alignment.CenterHorizontally)
-                )
-            }
-            else if(mainViewModel.other_user_info!!.friend_status== FriendRequestStatus.PENDING){
-                if(mainViewModel.other_user_info!!.is_current_user_sender_of_request) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Request Sent",
-                            fontSize = 20.sp,
-                            color = colorResource(R.color.electric_gold),
-                            modifier = Modifier
-                        )
-                        IconButton(
-                            onClick = {
-                                show_decline_request_loading=true
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Cancel Request",
-                                tint = colorResource(R.color.electric_red)
-                            )
-                        }
-                    }
 
-                }
-                else{
+            if (user.is_private) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(64.dp)
+                )
+                Text(
+                    text = "This profile is private",
+                    color = Color.Gray,
+                    fontSize = 18.sp,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Text(
+                    text = "People Helped: ${user.people_helped ?: 0}",
+                    fontSize = 18.sp,
+                    color = colorResource(R.color.electric_green),
+                )
+                Text(
+                    text = "Questions Asked: ${user.questions_asked ?: 0}",
+                    fontSize = 18.sp,
+                    color = colorResource(R.color.electric_green),
+                )
+                user.joined_on?.let {
                     Text(
-                        text = "This user sent you a request, do you wish to accept it?",
-                        fontSize = 20.sp,
-                        color = colorResource(R.color.white),
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
+                        text = "Joined On: ${GetUtcInLocalTime(it)}",
+                        fontSize = 16.sp,
+                        color = Color.Gray,
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier= Modifier.fillMaxWidth()){
-                        IconButton(
-                                onClick = {
-                                    show_accept_request_loading=true
-                                },
-                                colors= IconButtonDefaults.iconButtonColors(containerColor = colorResource(
-                                    R.color.electric_green))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Accept Request",
-                                    tint = colorResource(R.color.black),
-                                )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Friend Request Actions
+            when (user.friend_status) {
+                FriendRequestStatus.NOT_SENT -> {
+                    Button(
+                        onClick = { showSendRequestLoading = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.dark_gray)),
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    ) {
+                        Text("Send Friend Request", color = colorResource(R.color.electric_pink))
+                    }
+                }
+                FriendRequestStatus.ACCEPTED -> {
+                    Text(
+                        text = "Already a Friend",
+                        fontSize = 20.sp,
+                        color = colorResource(R.color.electric_blue),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                FriendRequestStatus.PENDING -> {
+                    if (user.is_current_user_sender_of_request) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "Request Sent", fontSize = 20.sp, color = colorResource(R.color.electric_gold))
+                            IconButton(onClick = { showDeclineRequestLoading = true }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Cancel", tint = colorResource(R.color.electric_red))
                             }
-                        Spacer(modifier=Modifier.width(32.dp))
-                        IconButton(
-                            onClick = {
-                                show_decline_request_loading=true
-                            },
-                            colors= IconButtonDefaults.iconButtonColors(containerColor = colorResource(
-                                R.color.electric_red))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Decline Request",
-                                tint = colorResource(R.color.white)
-                            )
+                        }
+                    } else {
+                        Text(text = "User sent you a request", color = Color.White, fontSize = 16.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                            IconButton(
+                                onClick = { showAcceptRequestLoading = true },
+                                colors = IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_green))
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Accept", tint = Color.Black)
+                            }
+                            IconButton(
+                                onClick = { showDeclineRequestLoading = true },
+                                colors = IconButtonDefaults.iconButtonColors(containerColor = colorResource(R.color.electric_red))
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Decline", tint = Color.White)
+                            }
                         }
                     }
                 }
             }
         }
-        if(show_send_request_loading){
+
+        // Loading Screens
+        if (showSendRequestLoading) {
             LoadingScreenWithToast(
                 inside_launched_effect = { onResult ->
-                    mainViewModel.SendFriendRequest(
-                        other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = { success, msg ->
-                            onResult(success, msg)
-                        }
-                    )
+                    exploreViewModel.sendFriendRequest(user.username, onResult)
                 },
                 navController = navController,
                 success_message = "Sent Friend Request",
-                onSuccess = {
-                    navController.navigateUp()
-                    navController.navigate(GeneralUser(username = mainViewModel.other_user_info!!.username))
-//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.PENDING
-//                    mainViewModel.other_user_info!!.is_current_user_sender_of_request=true
-                    show_send_request_loading = false
+                onSuccess = { 
+                    showSendRequestLoading = false
+                    exploreViewModel.getOtherUserInfo(user.username) { _, _ -> }
                 },
-                onFailure = {
-                    show_send_request_loading = false
-                }
+                onFailure = { showSendRequestLoading = false }
             )
         }
-        if(show_accept_request_loading){
+        if (showAcceptRequestLoading) {
             LoadingScreenWithToast(
                 inside_launched_effect = { onResult ->
-                    mainViewModel.AcceptFriendRequest(
-                        other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = { success, msg ->
-                            onResult(success, msg)
-                        }
-                    )
+                    exploreViewModel.acceptFriendRequest(user.username, onResult)
                 },
                 navController = navController,
                 success_message = "Friend Request Accepted",
-                onSuccess = {
-                    navController.navigateUp()
-                    navController.navigate(GeneralUser(username = mainViewModel.other_user_info!!.username))//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.ACCEPTED
-                    show_accept_request_loading = false
+                onSuccess = { 
+                    showAcceptRequestLoading = false
+                    exploreViewModel.getOtherUserInfo(user.username) { _, _ -> }
                 },
-                onFailure = {
-                    show_accept_request_loading = false
-                }
+                onFailure = { showAcceptRequestLoading = false }
             )
         }
-        if(show_decline_request_loading){
+        if (showDeclineRequestLoading) {
             LoadingScreenWithToast(
                 inside_launched_effect = { onResult ->
-                    mainViewModel.DeclineFriendRequest(
-                        other_username = mainViewModel.other_user_info!!.username,
-                        onFinish = { success, msg ->
-                            onResult(success, msg)
-                        }
-                    )
+                    exploreViewModel.declineFriendRequest(user.username, onResult)
                 },
                 navController = navController,
-                success_message = "Declined Friend Request",
-                onSuccess = {
-                    navController.navigateUp()
-                    navController.navigate(GeneralUser(username = mainViewModel.other_user_info!!.username))//                    mainViewModel.other_user_info!!.friend_status= FriendRequestStatus.NOT_SENT
-                    show_decline_request_loading = false
+                success_message = "Request Handled",
+                onSuccess = { 
+                    showDeclineRequestLoading = false
+                    exploreViewModel.getOtherUserInfo(user.username) { _, _ -> }
                 },
-                onFailure = {
-                    show_decline_request_loading = false
-                }
+                onFailure = { showDeclineRequestLoading = false }
             )
         }
     }

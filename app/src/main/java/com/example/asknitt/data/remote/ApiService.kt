@@ -1,5 +1,7 @@
 package com.example.asknitt.data.remote
 
+import com.example.asknitt.data.model.AIChatResponse
+import com.example.asknitt.data.model.AIHistoryDeleteResponse
 import com.example.asknitt.data.model.Answer
 import com.example.asknitt.data.model.CheckSuccess
 import com.example.asknitt.data.model.CurrentUserInfo
@@ -13,14 +15,21 @@ import com.example.asknitt.data.model.Tags
 import com.example.asknitt.data.model.Token
 import com.example.asknitt.data.model.User
 import com.example.asknitt.data.model.Vote
+import com.example.asknitt.data.ProfileVisibility
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Query
+
+data class UpdateVisibilityRequest(val profile_visibility: ProfileVisibility)
+data class UpdateVisibilityResponse(val success: Boolean, val profile_visibility: ProfileVisibility, val error_msg: String? = null)
+data class AIChatRequest(val prompt: String)
 
 interface ApiService {
 
@@ -29,7 +38,6 @@ interface ApiService {
 
     @POST("signup")
     suspend fun SignUp(@Body user: User): Response<Token>
-
 
     @GET("user_doubts")
     suspend fun GetDoubts(@Query("username") username: String): Response<List<Doubts>>
@@ -97,4 +105,12 @@ interface ApiService {
     @Multipart
     suspend fun UploadFilesForAnswer(@Part files:List<MultipartBody.Part>): Response<CheckSuccess>
 
+    @PUT("update_profile_visibility")
+    suspend fun UpdateProfileVisibility(@Body request: UpdateVisibilityRequest): Response<UpdateVisibilityResponse>
+
+    @POST("api/askAI")
+    suspend fun AskAI(@Body request: AIChatRequest): Response<AIChatResponse>
+
+    @DELETE("api/askAI/history")
+    suspend fun DeleteAIHistory(): Response<AIHistoryDeleteResponse>
 }
